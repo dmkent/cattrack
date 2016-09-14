@@ -51,6 +51,20 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
+    def load_ofx(self, fname):
+        """Load an OFX file into the DB."""
+        import ofxparse
+        with open(fname, 'rb') as fobj:
+            data = ofxparse.OfxParser.parse(fobj)
+
+        for trans in data.account.statement.transactions:
+            Transaction.objects.create(
+                when=trans.date,
+                account=self,
+                description=trans.memo,
+                amount=trans.amount,
+            )
+
 
 class Category(models.Model):
     """A transaction category."""
