@@ -1,5 +1,7 @@
 from django.db import models
 
+from ctrack import categories
+
 class Transaction(models.Model):
     """A single one-way transaction."""
     when = models.DateTimeField()
@@ -32,6 +34,9 @@ class Transaction(models.Model):
         self.is_split = True
         self.save()
         [new_trans.save() for new_trans in new_transactions]
+
+    def suggest_category(self, text_clf):
+        return [Category.objects.get(name=name) for name in categories.predict(text_clf, self.description)]
 
 
 class SplitTransaction(Transaction):
