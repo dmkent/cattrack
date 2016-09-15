@@ -35,8 +35,9 @@ class Transaction(models.Model):
         self.save()
         [new_trans.save() for new_trans in new_transactions]
 
-    def suggest_category(self, text_clf):
-        return [Category.objects.get(name=name) for name in categories.predict(text_clf, self.description)]
+    def suggest_category(self):
+        clf = categories.categoriser
+        return [Category.objects.get(name=name) for name in clf.predict(self.description)]
 
 
 class SplitTransaction(Transaction):
