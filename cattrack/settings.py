@@ -123,3 +123,4 @@ STATIC_URL = '/static/'
 
 
 CTRACK_CATEGORISER = 'SklearnCategoriser'
+CTRACK_CATEGORISER_FILE = 'categoriser.pkl'

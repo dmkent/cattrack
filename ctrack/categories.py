@@ -1,4 +1,5 @@
 """Categorisation related implementations."""
+import os
 import pickle
 
 import numpy as np
@@ -61,6 +62,13 @@ class SklearnCategoriser(Categoriser):
         """Use the model to predict categories."""
         if self._clf is None:
             self.fit()
+            try:
+                dumped_file = settings.CTRACK_CATEGORISER_FILE
+            except AttributeError:
+                dumped_file = None
+            if dumped_file:
+                with open(dumped_file, 'wb') as fobj:
+                    fobj.write(self.to_bytes())
 
         return self._clf.predict([text])
 
@@ -74,7 +82,20 @@ class SklearnCategoriser(Categoriser):
         return SklearnCategoriser(pickle.loads(data))
 
 def _init():
-    clsname = settings.CTRACK_CATEGORISER
+    try:
+        dumped_file = settings.CTRACK_CATEGORISER_FILE
+    except AttributeError:
+        dumped_file = None
+    try:
+        clsname = settings.CTRACK_CATEGORISER
+    except AttributeError:
+        clsname = 'SklearnCategoriser'
+
     cls = globals()[clsname]
-    return cls()
+
+    if dumped_file and os.path.isfile(dumped_file):
+        categoriser = cls.from_bytes(open(dumped_file, 'rb').read())
+    else:
+        categoriser = cls()
+    return categoriser
 categoriser = _init()
