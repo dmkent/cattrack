@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { HttpModule }    from '@angular/http';
 import { Ng2BootstrapModule } from 'ng2-bootstrap/ng2-bootstrap';
+import {Ng2PaginationModule} from 'ng2-pagination';
 
 import { routing } from './app.routing';
 import { AppComponent }   from './app.component';
@@ -17,7 +18,8 @@ import { DashboardComponent }      from './dashboard.component';
     FormsModule,
     HttpModule,
     routing,
-    Ng2BootstrapModule
+    Ng2BootstrapModule,
+    Ng2PaginationModule
   ],
   declarations: [ 
     AppComponent,

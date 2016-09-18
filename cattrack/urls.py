@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from rest_framework import routers, serializers, viewsets
+from rest_framework import routers, serializers, viewsets, pagination
 from ctrack.models import Account, Category, Transaction
 
 # Serializers define the API representation.
@@ -30,9 +30,11 @@ class CategorySerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 class TransactionSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source='category.name')
+
     class Meta:
         model = Transaction
-        fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'account')
+        fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
 
 # ViewSets define the view behavior.
 class AccountViewSet(viewsets.ModelViewSet):
@@ -43,9 +45,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+class PageNumberSettablePagination(pagination.PageNumberPagination):
+    page_size_query_param = 'page_size'
+    
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+    pagination_class = PageNumberSettablePagination
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()

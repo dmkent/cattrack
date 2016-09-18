@@ -13,6 +13,9 @@ export class TransactionComponent implements OnInit {
     title = "CatTrack";
     subtitle = "Track spending by category.";
     transactions: Transaction[];
+    count: number = 1;
+    page: number = 1;
+    page_size: number = 20;
     selectedTransaction: Transaction;
 
     constructor(
@@ -20,15 +23,19 @@ export class TransactionComponent implements OnInit {
       private router: Router){ }
 
     ngOnInit(): void {
-        this.getTransactions();
+        this.getTransactions(this.page);
     }
 
     onSelect(transaction: Transaction): void {
         this.selectedTransaction = transaction;
     }
 
-    getTransactions(): void {
-        this.transactionService.getTransactions().then(transactions => this.transactions = transactions);
+    getTransactions(page: number): void {
+        this.transactionService.getTransactions(page, this.page_size).then(res => {
+          this.transactions = res.transactions;
+          this.count = res.count;
+          this.page = page;
+        });
     }
 
     gotoDetail(): void {

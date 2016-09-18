@@ -17,8 +17,8 @@ export class DashboardComponent implements OnInit {
         private router: Router){}
 
     ngOnInit(): void {
-        this.transactionService.getTransactions()
-            .then(transactions => this.transactions = transactions.slice(1, 5));
+        this.transactionService.getTransactions(1)
+            .then(transactions => this.transactions = transactions.transactions.slice(1, 5));
     }
 
     gotoDetail(transaction: Transaction): void {

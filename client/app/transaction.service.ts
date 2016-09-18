@@ -1,14 +1,26 @@
 import { Injectable } from '@angular/core';
-import { Headers, Http } from '@angular/http';
+import { Headers, Http, Response } from '@angular/http';
 
 import 'rxjs/add/operator/toPromise';
 
 import { Transaction } from './transaction';
 import { TRANSACTIONS } from './mock-transactions'
 
+export class TransactionPage{
+    count: number;
+    transactions: Transaction[];
+}
+function tpFromResponse(response: Response): TransactionPage{
+    let decoded = response.json();
+    let tp = new TransactionPage()
+    tp.count = decoded.count;
+    tp.transactions = decoded.results as Transaction[];
+    return tp;
+}
+
 @Injectable()
 export class TransactionService {
-    private transUrl = 'http://localhost:8000/api/transactions/';
+    private transUrl = 'http://localhost:8000/api/transactions';
     private headers = new Headers({
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa("dkent:thisisapassword")
@@ -16,20 +28,22 @@ export class TransactionService {
 
     constructor(private http: Http) { }
     
-    getTransactions(): Promise<Transaction[]> {
-        return this.http.get(this.transUrl)
+    getTransactions(page: number, page_size: number = 10): Promise<TransactionPage> {
+        return this.http.get(this.transUrl + '/?page=' + page + '&page_size=' + page_size)
                    .toPromise()
-                   .then(response => response.json().results as Transaction[])
+                   .then(tpFromResponse)
                    .catch(this.handleError);
     }
 
     getTransaction(id: number): Promise<Transaction> {
-        return this.getTransactions()
-                   .then(transactions => transactions.find(transaction => transaction.id === id));
+        return this.http.get(this.transUrl + '/' + id)
+                   .toPromise()
+                   .then(response => response.json())
+                   .catch(this.handleError);
     }
 
     update(transaction: Transaction): Promise<Transaction> {
-        const url = `${this.transUrl}/${transaction.id}`;
+        const url = `${this.transUrl}/${transaction.id}/`;
         return this.http
             .put(url, JSON.stringify(transaction), {headers: this.headers})
             .toPromise()
@@ -51,7 +65,7 @@ export class TransactionService {
     }
 
     delete(id: number): Promise<void> {
-        let url = `${this.transUrl}/${id}`;
+        let url = `${this.transUrl}/${id}/`;
         return this.http.delete(url, {headers: this.headers})
             .toPromise()
             .then(() => null)

@@ -25,6 +25,7 @@
       'rxjs':                       'npm:rxjs',
       'angular2-in-memory-web-api': 'npm:angular2-in-memory-web-api',
       'moment': 'node_modules/moment/moment.js',
+      'ng2-pagination': 'npm:ng2-pagination',///dist/ng2-pagination-bundle.js',
     },
     // packages tells the System loader how to load when no filename and/or no extension
     packages: {
@@ -36,6 +37,10 @@
         defaultExtension: 'js'
       },
       'angular2-in-memory-web-api': {
+        main: './index.js',
+        defaultExtension: 'js'
+      },
+      'ng2-pagination': {
         main: './index.js',
         defaultExtension: 'js'
       }
