@@ -1,0 +1,8 @@
+<h3>Recent transactions</h3>
+<div class="grid grid-pad">
+  <div *ngFor="let trans of transactions" (click)="gotoDetail(trans)" class="col-1-4">
+    <div class="module transactions">
+      <h4>{{trans.description}}</h4>
+    </div>
+  </div>
+</div>

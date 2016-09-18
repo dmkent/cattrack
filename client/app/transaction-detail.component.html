@@ -1,0 +1,10 @@
+<div *ngIf="transaction">
+    <h2>{{transaction.description}}</h2>
+    <div><label>description: </label>{{transaction.description}}</div>
+    <div>
+        <label>amount: </label>
+        <input [(ngModel)]="transaction.amount" placeholder="0.0"/>
+    </div>
+    <button (click)="save()">Save</button>
+    <button (click)="goBack()">Back</button>
+</div>

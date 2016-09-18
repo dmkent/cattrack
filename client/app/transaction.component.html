@@ -1,0 +1,30 @@
+<h2>{{subtitle}}</h2>
+<div>
+    <table class="table">
+        <tr *ngFor="let transaction of transactions" 
+            [class.selected]="transaction === selectedTransaction"
+            (click)="onSelect(transaction)">
+            <td>{{transaction.when | date}}</td>
+            <td>{{transaction.description}}</td>
+            <td>{{transaction.amount | currency}}</td>
+            <td>
+            <button class="btn btn-default"
+                (click)="delete(transaction); $event.stopPropagation()">
+                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+            </button></td>
+        </tr>
+    </table>
+</div>
+<div *ngIf="selectedTransaction">
+    <h2>
+    {{selectedTransaction.description | uppercase}}
+    </h2>
+    <button (click)="gotoDetail()">View Details</button>
+</div>
+<div>
+      <label>Description:</label> <input #transactionDescription />
+      <button (click)="add(transactionDescription.value); transactionDescription.value=''">
+          Add
+      </button>
+</div>
+
