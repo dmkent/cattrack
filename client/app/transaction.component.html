@@ -42,6 +42,12 @@
 </div>
 <div class="col-md-2">
     <h3>Time</h3>
+    <input type="date" [(ngModel)]="filterFrom"/>
+    <input type="date" [(ngModel)]="filterTo"/>
+    <button class="btn btn-default btn-xs"
+            (click)="updateFilters()">
+        Update
+    </button>
     <h3>Category</h3>
     <div class="btn-group-vertical" role="group">
         <button [class.active]="filterCategory === null" 

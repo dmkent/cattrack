@@ -15,7 +15,8 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from rest_framework import routers, serializers, viewsets, pagination
+from rest_framework import routers, serializers, viewsets, pagination, filters
+import django_filters
 from ctrack.models import Account, Category, Transaction
 
 # Serializers define the API representation.
@@ -47,12 +48,20 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class PageNumberSettablePagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
+    page_size = 100
+
+class DateRangeTransactionFilter(filters.FilterSet):
+    from_date = django_filters.DateFilter(name='when', lookup_expr='gte')
+    to_date = django_filters.DateFilter(name='when', lookup_expr='lte')
+    class Meta:
+        model = Transaction
+        fields = ('from_date', 'to_date', 'account', 'category',)
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     pagination_class = PageNumberSettablePagination
-    filter_fields = ('when', 'account', 'category',)
+    filter_class = DateRangeTransactionFilter
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()

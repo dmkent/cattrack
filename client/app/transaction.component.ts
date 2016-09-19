@@ -20,6 +20,8 @@ export class TransactionComponent implements OnInit {
     page_size: number = 20;
     selectedTransaction: Transaction;
     filterCategory: Category = null;
+    filterFrom: Date = null;
+    filterTo: Date = null;
     loading: boolean = false;
 
     constructor(
@@ -40,9 +42,14 @@ export class TransactionComponent implements OnInit {
         this.getTransactions(this.page);
     }
 
+    updateFilters(): void {
+      this.getTransactions(this.page);
+    }
+
     getTransactions(page: number): void {
         this.loading = true;
-        this.transactionService.getTransactions(page, this.page_size, this.filterCategory).then(res => {
+        this.transactionService.getTransactions(page, this.page_size, this.filterCategory,
+                                                this.filterFrom, this.filterTo).then(res => {
           this.transactions = res.transactions;
           this.count = res.count;
           this.page = page;

@@ -25,13 +25,21 @@ export class TransactionService {
 
     constructor(private http: Http) { }
     
-    getTransactions(page: number, page_size: number = 10, category = null): Promise<TransactionPage> {
+    getTransactions(page: number, page_size: number = 10, 
+                    category: Category = null, from_date: Date = null, 
+                    to_date: Date = null): Promise<TransactionPage> {
         let args = new URLSearchParams();
         args.set('page', "" + page);
         args.set('page_size', "" + page_size);
 
         if (category !== null){
-            args.set('category', category.id);
+            args.set('category', "" + category.id);
+        }
+        if (from_date !== null){
+            args.set('from_date', from_date.toString();
+        }
+        if (to_date !== null){
+            args.set('to_date', to_date.toString());
         }
         return this.http.get(this.transUrl + '/', {search: args})
                    .toPromise()
