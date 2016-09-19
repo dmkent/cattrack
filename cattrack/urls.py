@@ -47,11 +47,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class PageNumberSettablePagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
-    
+
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     pagination_class = PageNumberSettablePagination
+    filter_fields = ('when', 'account', 'category',)
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()

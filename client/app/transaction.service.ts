@@ -4,7 +4,6 @@ import { Headers, Http, Response } from '@angular/http';
 import 'rxjs/add/operator/toPromise';
 
 import { Transaction } from './transaction';
-import { TRANSACTIONS } from './mock-transactions'
 
 export class TransactionPage{
     count: number;

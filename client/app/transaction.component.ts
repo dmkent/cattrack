@@ -17,6 +17,7 @@ export class TransactionComponent implements OnInit {
     page: number = 1;
     page_size: number = 20;
     selectedTransaction: Transaction;
+    loading: boolean = false;
 
     constructor(
       private transactionService: TransactionService,
@@ -31,10 +32,12 @@ export class TransactionComponent implements OnInit {
     }
 
     getTransactions(page: number): void {
+        this.loading = true;
         this.transactionService.getTransactions(page, this.page_size).then(res => {
           this.transactions = res.transactions;
           this.count = res.count;
           this.page = page;
+          this.loading = false;
         });
     }
 
