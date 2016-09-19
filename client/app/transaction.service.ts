@@ -1,14 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Headers, Http, Response } from '@angular/http';
+import { Headers, Http, Response, URLSearchParams } from '@angular/http';
 
 import 'rxjs/add/operator/toPromise';
 
-import { Transaction } from './transaction';
+import { Transaction, TransactionPage } from './transaction';
+import { Category } from './category';
 
-export class TransactionPage{
-    count: number;
-    transactions: Transaction[];
-}
 function tpFromResponse(response: Response): TransactionPage{
     let decoded = response.json();
     let tp = new TransactionPage()
@@ -20,6 +17,7 @@ function tpFromResponse(response: Response): TransactionPage{
 @Injectable()
 export class TransactionService {
     private transUrl = 'http://localhost:8000/api/transactions';
+    private catUrl = 'http://localhost:8000/api/categories';
     private headers = new Headers({
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa("dkent:thisisapassword")
@@ -27,8 +25,15 @@ export class TransactionService {
 
     constructor(private http: Http) { }
     
-    getTransactions(page: number, page_size: number = 10): Promise<TransactionPage> {
-        return this.http.get(this.transUrl + '/?page=' + page + '&page_size=' + page_size)
+    getTransactions(page: number, page_size: number = 10, category = null): Promise<TransactionPage> {
+        let args = new URLSearchParams();
+        args.set('page', "" + page);
+        args.set('page_size', "" + page_size);
+
+        if (category !== null){
+            args.set('category', category.id);
+        }
+        return this.http.get(this.transUrl + '/', {search: args})
                    .toPromise()
                    .then(tpFromResponse)
                    .catch(this.handleError);
@@ -69,6 +74,13 @@ export class TransactionService {
             .toPromise()
             .then(() => null)
             .catch(this.handleError);
+    }
+
+    getCategories(): Promise<Category[]> {
+        return this.http.get(this.catUrl)
+                   .toPromise()
+                   .then(res => res.json())
+                   .catch(this.handleError);
     }
 
     private handleError(error: any): Promise<any> {

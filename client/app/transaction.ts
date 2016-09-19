@@ -1,4 +1,3 @@
-
 export class Transaction {
     id: number;
     when: Date;
@@ -7,4 +6,9 @@ export class Transaction {
     catgory: number;
     category_name: string;
     account: number;
+}
+
+export class TransactionPage{
+    count: number;
+    transactions: Transaction[];
 }
