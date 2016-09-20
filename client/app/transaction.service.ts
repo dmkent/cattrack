@@ -31,12 +31,13 @@ export class TransactionService {
         let args = new URLSearchParams();
         args.set('page', "" + page);
         args.set('page_size', "" + page_size);
+        args.set('format', "json");
 
         if (category !== null){
             args.set('category', "" + category.id);
         }
         if (from_date !== null){
-            args.set('from_date', from_date.toString();
+            args.set('from_date', from_date.toString());
         }
         if (to_date !== null){
             args.set('to_date', to_date.toString());
@@ -85,7 +86,9 @@ export class TransactionService {
     }
 
     getCategories(): Promise<Category[]> {
-        return this.http.get(this.catUrl)
+        let args = new URLSearchParams();
+        args.set('format', 'json');
+        return this.http.get(this.catUrl, {search: args})
                    .toPromise()
                    .then(res => res.json())
                    .catch(this.handleError);
