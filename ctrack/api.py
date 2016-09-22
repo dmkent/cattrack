@@ -2,7 +2,8 @@
 """
 from django.conf.urls import url, include
 from django.http import Http404, HttpResponseBadRequest
-from rest_framework import filters, generics, pagination, response, routers, serializers, views, viewsets
+from rest_framework import (decorators, filters, generics, pagination, response, routers, 
+                            serializers, status, views, viewsets)
 import django_filters
 from ctrack.models import Account, Category, Transaction
 
@@ -24,10 +25,25 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
 
+
+class LoadDataSerializer(serializers.Serializer):
+    data_file = serializers.FileField()
+
 # ViewSets define the view behavior.
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
+
+    @decorators.detail_route(methods=["post"])
+    def load_data(self, request, pk=None):
+        account = self.get_object()
+        serializer = LoadDataSerializer(data=request.data)
+        if serializer.is_valid():
+            account.load_ofx(serializer.validated_data['data_file'])
+            return response.Response({'status': 'loaded'})
+        else:
+            return response.Response(serializer.errors,
+                                     status=status.HTTP_400_BAD_REQUEST)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')

@@ -1,4 +1,5 @@
 from django.db import models
+import pytz
 
 from ctrack import categories
 
@@ -52,15 +53,28 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def load_ofx(self, fname):
+    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True):
         """Load an OFX file into the DB."""
         import ofxparse
-        with open(fname, 'rb') as fobj:
-            data = ofxparse.OfxParser.parse(fobj)
+        if hasattr(fname, 'read'):
+            data = ofxparse.OfxParser.parse(fname)
+        else:
+            with open(fname, 'rb') as fobj:
+                data = ofxparse.OfxParser.parse(fobj)
+
+        if from_exist_latest:
+            latest_trans = self.transaction_set.latest('when')
+            from_date = latest_trans.when
 
         for trans in data.account.statement.transactions:
+            tdate = pytz.utc.localize(trans.date)
+            if from_date and tdate <= from_date:
+                continue
+            if to_date and tdate > to_date:
+                continue
+
             Transaction.objects.create(
-                when=trans.date,
+                when=tdate,
                 account=self,
                 description=trans.memo,
                 amount=trans.amount,
