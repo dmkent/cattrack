@@ -3,7 +3,7 @@ export class Transaction {
     when: Date;
     description: string;
     amount: number;
-    catgory: number;
+    category: number;
     category_name: string;
     account: number;
 }

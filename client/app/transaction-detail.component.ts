@@ -28,7 +28,7 @@ export class TransactionDetailComponent implements OnInit {
     }
 
     save(): void {
-      this.transactionService.update(this.transaction)
+      this.transactionService.updateTransaction(this.transaction)
           .then(this.goBack);
     }
 

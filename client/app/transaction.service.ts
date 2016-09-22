@@ -55,7 +55,7 @@ export class TransactionService {
                    .catch(this.handleError);
     }
 
-    update(transaction: Transaction): Promise<Transaction> {
+    updateTransaction(transaction: Transaction, splits: any = {}): Promise<Transaction> {
         const url = `${this.transUrl}/${transaction.id}/`;
         return this.http
             .put(url, JSON.stringify(transaction), {headers: this.headers})

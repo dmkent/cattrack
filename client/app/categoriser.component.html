@@ -1,0 +1,88 @@
+<div bsModal #catmodal="bs-modal" id="categoriser" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" aria-label="Close" (click)="hide()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h3 class="modal-title">Categorise transaction</h3>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="transaction" class="row">
+          <div class="col-sm-12">
+            <h4>{{transaction.description}}</h4>
+            <dl class="dl-horizontal">
+              <dt>Date</dt>
+              <dd>{{transaction.when | date}}</dd>
+              <dt>Account</dt>
+              <dd>{{transaction.account}}</dd>
+              <dt>Current category:</dt>
+              <dd>{{transaction.category_name}}</dd>
+              <dt>Total amount</dt>
+              <dd>{{transaction.amount | currency:AUD:true}}</dd>
+            </dl>
+            <form [formGroup]="catForm" novalidate (ngSubmit)="save()" class="form-horizontal">
+              <div formArrayName="splits">
+                <fieldset *ngFor="let split of catForm.controls.splits.controls; let i=index">
+                  <legend>
+                    <span>Category {{i + 1}}</span>
+                    <span *ngIf="catForm.controls.splits.controls.length > 1" 
+                        (click)="removeSplitCat(i)" class="small"> remove
+                    </span>
+                  </legend>
+
+                  <!-- Angular assigns array index as group name by default 0, 1, 2, ... -->
+                  <div [formGroupName]="i">
+                    <!--category-->
+                    <div class="form-group row"
+                         [class.has-success]="catForm.controls.splits.controls[i].controls.category.valid"
+                         [class.has-error]="catForm.controls.splits.controls[i].controls.category.invalid &&
+                                            catForm.controls.splits.controls[i].controls.category.touched">
+                      <label [attr.for]="'selcat' + i" class="col-sm-2 control-label">Category</label>
+                      <div class="col-sm-10">
+                        <select [attr.id]="'selcat' + i" formControlName="category" class="form-control">
+                          <option *ngFor="let cat of categories" value={{cat.id}}>{{cat.name}}</option>
+                        </select>
+                      </div>
+                      <!--display error message if street is not valid-->
+                      <small [class.hidden]="catForm.controls.splits.controls[i].controls.category.valid"
+                             class="col-sm-10 col-sm-offset-2 help-block">
+                          Category is required
+                      </small>
+                    </div>
+                    <!--amount-->
+                    <div class="form-group row"
+                         [class.has-success]="catForm.controls.splits.controls[i].controls.amount.valid"
+                         [class.has-error]="catForm.controls.splits.controls[i].controls.amount.invalid &&
+                                            catForm.controls.splits.controls[i].controls.amount.touched">
+                      <label [attr.for]="'inamt' + i" class="col-sm-2 control-label">Amount</label>
+                      <div class="col-sm-10">
+                        <input [attr.id]="'inamt' + i" type="number" formControlName="amount" 
+                               class="form-control"
+                               (change)="catForm.updateValueAndValidity()">
+                      </div>
+                      <!--display error message if street is not valid-->
+                      <small [class.hidden]="catForm.controls.splits.controls[i].controls.amount.valid"
+                             class="col-sm-10 col-sm-offset-2 help-block">
+                          Amount is required
+                      </small>
+                    </div>
+                  </div>
+                </fieldset> <!-- div for -->
+                <button type="button" class="btn btn-default btn-sm" (click)="addSplitCat(); $event.stopPropagation()">Add split</button>
+                <p [class.hidden]="catForm.valid || !catForm.errors.amountTotalIncorrect"
+                   class="col-sm-12 text-danger">
+                  The sum of the amounts must equal the transaction total.
+                </p>
+              </div> <!-- form array -->
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" (click)="hide()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!catForm.valid">Save changes</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->

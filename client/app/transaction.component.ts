@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Transaction } from './transaction';
 import { Category } from './category';
 import { TransactionService } from './transaction.service';
+import { CategoriserComponent } from './categoriser.component';
 
 @Component({
   selector: 'my-transactions',
