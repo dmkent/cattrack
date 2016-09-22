@@ -45,7 +45,7 @@ class DateRangeTransactionFilter(filters.FilterSet):
         fields = ('from_date', 'to_date', 'account', 'category',)
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = Transaction.objects.all()
+    queryset = Transaction.objects.filter(is_split=False).order_by("-when")
     serializer_class = TransactionSerializer
     pagination_class = PageNumberSettablePagination
     filter_class = DateRangeTransactionFilter
@@ -89,7 +89,7 @@ class SplitTransactionView(views.APIView):
             else:
                 return HttpResponseBadRequest("Invalid arguments.")
         transaction.split(args)
-        return {}
+        return response.Response({})
 
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)

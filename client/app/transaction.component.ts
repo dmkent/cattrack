@@ -40,11 +40,13 @@ export class TransactionComponent implements OnInit {
 
     setFilterCategory(category: Category): void {
         this.filterCategory = category;
+        this.page = 1;
         this.getTransactions(this.page);
     }
 
     updateFilters(): void {
-      this.getTransactions(this.page);
+        this.page = 1;
+        this.getTransactions(this.page);
     }
 
     getTransactions(page: number): void {

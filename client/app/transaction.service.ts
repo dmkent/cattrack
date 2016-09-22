@@ -55,13 +55,36 @@ export class TransactionService {
                    .catch(this.handleError);
     }
 
-    updateTransaction(transaction: Transaction, splits: any = {}): Promise<Transaction> {
+    updateTransaction(transaction: Transaction, splits: any = null): Promise<Transaction> {
         const url = `${this.transUrl}/${transaction.id}/`;
-        return this.http
-            .put(url, JSON.stringify(transaction), {headers: this.headers})
-            .toPromise()
-            .then(() => transaction)
-            .catch(this.handleError);
+        const splitsUrl = url + "split"
+
+        if (splits !== null && splits.length == 1){
+            let new_category = splits[0].category;
+            transaction.category = new_category;
+        }
+        let first_request = (transaction) => {
+            return this.http
+                .put(url, JSON.stringify(transaction), {headers: this.headers})
+                .toPromise()
+                .then(() => transaction)
+                .catch(this.handleError);
+        };
+        let second_request = (transaction) => {
+            return transaction;
+        };
+        if (splits !== null && splits.length > 1) {
+            second_request = (transaction) => {
+                return this.http
+                .post(splitsUrl, JSON.stringify(splits), {headers: this.headers})
+                .toPromise()
+                .then(() => transaction)
+                .catch(this.handleError);
+            };
+        }
+
+        return first_request(transaction)
+               .then(() => second_request(transaction));
     }
 
     create(descr: string): Promise<Transaction> {
