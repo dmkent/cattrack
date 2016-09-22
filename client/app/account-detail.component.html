@@ -1,0 +1,8 @@
+<div *ngIf="account">
+    <h2>{{account.name}}</h2>
+    <div class="form-group">
+        <label for="form-upload">Load data: </label>
+        <input type="file" id="form-upload"/>
+    </div>
+    <button (click)="save()" class="btn btn-default">Save</button>
+</div>

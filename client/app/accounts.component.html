@@ -1,0 +1,9 @@
+<h3>Accounts</h3>
+<ul>
+  <li *ngFor="let acct of accounts" (click)="selectAccount(acct)">
+    {{acct.name}}
+  </li>
+</ul>
+<div *ngIf="selectedAccount !== null">
+<account-detail [account]="selectedAccount"></account-detail>
+</div>

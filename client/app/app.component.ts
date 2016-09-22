@@ -9,6 +9,7 @@ import { Component, ViewContainerRef } from '@angular/core';
     </div>
     <ul class="nav nav-tabs">
         <li><a routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
+        <li><a routerLink="/accounts" routerLinkActive="active">Accounts</a></li>
         <li><a routerLink="/transactions" routerLinkActive="active">Transactions</a></li>
     </ul>
     </div>

@@ -5,6 +5,8 @@ import 'rxjs/add/operator/toPromise';
 
 import { Transaction, TransactionPage } from './transaction';
 import { Category } from './category';
+import { Account } from './account';
+
 
 function tpFromResponse(response: Response): TransactionPage{
     let decoded = response.json();
@@ -14,17 +16,19 @@ function tpFromResponse(response: Response): TransactionPage{
     return tp;
 }
 
+
 @Injectable()
 export class TransactionService {
     private transUrl = 'http://localhost:8000/api/transactions';
     private catUrl = 'http://localhost:8000/api/categories';
+    private accountUrl = 'http://localhost:8000/api/accounts';
     private headers = new Headers({
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa("dkent:thisisapassword")
     });
 
     constructor(private http: Http) { }
-    
+
     getTransactions(page: number, page_size: number = 10, 
                     category: Category = null, from_date: Date = null, 
                     to_date: Date = null): Promise<TransactionPage> {
@@ -112,6 +116,15 @@ export class TransactionService {
         let args = new URLSearchParams();
         args.set('format', 'json');
         return this.http.get(this.catUrl, {search: args})
+                   .toPromise()
+                   .then(res => res.json())
+                   .catch(this.handleError);
+    }
+
+    getAccounts(): Promise<Account[]> {
+        let args = new URLSearchParams();
+        args.set('format', 'json');
+        return this.http.get(this.accountUrl, {search: args})
                    .toPromise()
                    .then(res => res.json())
                    .catch(this.handleError);

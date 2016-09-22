@@ -2,7 +2,7 @@
 """
 from django.conf.urls import url, include
 from django.http import Http404, HttpResponseBadRequest
-from rest_framework import (decorators, filters, generics, pagination, response, routers, 
+from rest_framework import (decorators, filters, generics, pagination, response, routers,
                             serializers, status, views, viewsets)
 import django_filters
 from ctrack.models import Account, Category, Transaction
@@ -35,7 +35,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
 
     @decorators.detail_route(methods=["post"])
-    def load_data(self, request, pk=None):
+    def load(self, request, pk=None):
         account = self.get_object()
         serializer = LoadDataSerializer(data=request.data)
         if serializer.is_valid():

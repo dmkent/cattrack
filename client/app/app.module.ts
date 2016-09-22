@@ -14,9 +14,12 @@ import { TransactionComponent } from './transaction.component';
 import { TransactionService } from './transaction.service';
 import { DashboardComponent } from './dashboard.component';
 import { CategoriserComponent } from './categoriser.component';
+import { FileUploadService } from './file-upload.service';
+import { AccountComponent } from './accounts.component';
+import { AccountDetailComponent } from './account-detail.component';
 
 @NgModule({
-  imports:      [ 
+  imports:      [
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
@@ -26,15 +29,18 @@ import { CategoriserComponent } from './categoriser.component';
     Ng2PaginationModule,
     ModalModule
   ],
-  declarations: [ 
+  declarations: [
     AppComponent,
     TransactionDetailComponent,
     TransactionComponent,
     DashboardComponent,
-    CategoriserComponent
+    CategoriserComponent,
+    AccountComponent,
+    AccountDetailComponent
   ],
   providers: [
-    TransactionService
+    TransactionService,
+    FileUploadService
   ],
   bootstrap:    [ AppComponent ]
 })
