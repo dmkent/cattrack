@@ -1,6 +1,7 @@
 <div class="row">
 <div class="col-md-10">
-    <categoriser-component #categoriser [transaction]="selectedTransaction"></categoriser-component>
+    <categoriser-component #categoriser [transaction]="selectedTransaction"
+                           (onSave)="getTransactions()"></categoriser-component>
     <table class="table table-condensed">
         <tr *ngFor="let transaction of transactions | paginate: { id: 'server', itemsPerPage: page_size, currentPage: page, totalItems: count }" 
             [class.active]="transaction === selectedTransaction"

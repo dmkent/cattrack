@@ -67,7 +67,7 @@ export class TransactionService {
 
     updateTransaction(transaction: Transaction, splits: any = null): Promise<Transaction> {
         const url = `${this.transUrl}/${transaction.id}/`;
-        const splitsUrl = url + "split"
+        const splitsUrl = url + "split/"
 
         if (splits !== null && splits.length == 1){
             let new_category = splits[0].category;

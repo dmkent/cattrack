@@ -13,10 +13,12 @@ class AccountSerializer(serializers.HyperlinkedModelSerializer):
         model = Account
         fields = ('url', 'id', 'name')
 
+
 class CategorySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Category
         fields = ('url', 'id', 'name')
+
 
 class TransactionSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
@@ -24,6 +26,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
+
+
+class SplitTransSerializer(serializers.Serializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class LoadDataSerializer(serializers.Serializer):
@@ -70,6 +77,23 @@ class TransactionViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberSettablePagination
     filter_class = DateRangeTransactionFilter
 
+    @decorators.detail_route(methods=["post"])
+    def split(self, request, pk=None):
+        transaction = self.get_object()
+        args = {}
+        for elem in request.data:
+            serializer = SplitTransSerializer(data=elem)
+            if serializer.is_valid():
+                args[serializer.validated_data['category']] = serializer.validated_data['amount']
+            else:
+                return HttpResponseBadRequest("Invalid arguments.")
+        try:
+            transaction.split(args)
+        except Exception as thrown:
+            return response.Response("Unable to set categories: {}".format(thrown),
+                                     status=status.HTTP_400_BAD_REQUEST)
+        return response.Response({"message": "Success"})
+
 
 class SuggestCategories(generics.ListAPIView):
     """
@@ -85,38 +109,11 @@ class SuggestCategories(generics.ListAPIView):
         return Category.objects.filter(name__in=transaction.suggest_category())
 
 
-class SplitTransSerializer(serializers.Serializer):
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-
-
-class SplitTransactionView(views.APIView):
-    """
-        Split a transaction.
-    """
-    queryset = Transaction.objects.all()
-
-    def post(self, request, pk, format=None):
-        try:
-            transaction = Transaction.objects.get(pk=pk)
-        except Transaction.DoesNotExist:
-            raise Http404
-        args = {}
-        for elem in request.data:
-            serializer = SplitTransSerializer(data=elem)
-            if serializer.is_valid():
-                args[serializer.validated_data['category']] = serializer.validated_data['amount']
-            else:
-                return HttpResponseBadRequest("Invalid arguments.")
-        transaction.split(args)
-        return response.Response({})
-
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)
 router.register(r'categories', CategoryViewSet)
 router.register(r'transactions', TransactionViewSet)
 urls = [
     url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
-    url(r'^transactions/(?P<pk>[0-9]+)/split$', SplitTransactionView.as_view()),
     url(r'^', include(router.urls)),
 ]

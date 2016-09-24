@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, ViewChild } from '@angular/core';
 import { Validators, FormGroup, FormArray, FormBuilder, Validator } from '@angular/forms';
 import { ModalDirective } from 'ng2-bootstrap/ng2-bootstrap';
 
@@ -27,6 +27,10 @@ let totalAmountValidator = (expected: number) => {
 export class CategoriserComponent implements OnInit {
     @Input()
     transaction: Transaction = null;
+
+    @Output() 
+    onSave: EventEmitter<any> = new EventEmitter();
+
     categories: Category[];
 
     public catForm: FormGroup;
@@ -86,7 +90,10 @@ export class CategoriserComponent implements OnInit {
       let model = this.catForm;
       this.transactionService.updateTransaction(this.transaction,
                                                 this.catForm.value.splits)
-                             .then((t) => this.childModal.hide());
+                             .then((t) => {
+                                 this.childModal.hide();
+                                 this.onSave.emit();
+                             });
     }
 
     hide(): void {

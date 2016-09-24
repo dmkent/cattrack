@@ -59,7 +59,10 @@ export class TransactionComponent implements OnInit {
         this.getTransactions(this.page);
     }
 
-    getTransactions(page: number): void {
+    getTransactions(page?: number): void {
+        if (page === undefined){
+            page = this.page;
+        }
         this.loading = true;
         this.transactionService.getTransactions(page, this.page_size, 
                                                 this.filterCategory,
