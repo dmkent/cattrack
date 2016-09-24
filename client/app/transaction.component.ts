@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { Transaction } from './transaction';
+import { Account } from './account';
 import { Category } from './category';
 import { TransactionService } from './transaction.service';
 import { CategoriserComponent } from './categoriser.component';
@@ -16,6 +17,7 @@ export class TransactionComponent implements OnInit {
     subtitle = "Track spending by category.";
     transactions: Transaction[];
     categories: Category[];
+    accounts: Account[];
     count: number = 1;
     page: number = 1;
     page_size: number = 20;
@@ -23,6 +25,7 @@ export class TransactionComponent implements OnInit {
     filterCategory: Category = null;
     filterFrom: Date = null;
     filterTo: Date = null;
+    filterAccount: Account = null;
     loading: boolean = false;
 
     constructor(
@@ -32,6 +35,7 @@ export class TransactionComponent implements OnInit {
     ngOnInit(): void {
         this.getTransactions(this.page);
         this.getCategories();
+        this.getAccounts();
     }
 
     onSelect(transaction: Transaction): void {
@@ -44,6 +48,12 @@ export class TransactionComponent implements OnInit {
         this.getTransactions(this.page);
     }
 
+    setFilterAccount(account: Account): void {
+        this.filterAccount = account;
+        this.page = 1;
+        this.getTransactions(this.page);
+    }
+
     updateFilters(): void {
         this.page = 1;
         this.getTransactions(this.page);
@@ -51,7 +61,9 @@ export class TransactionComponent implements OnInit {
 
     getTransactions(page: number): void {
         this.loading = true;
-        this.transactionService.getTransactions(page, this.page_size, this.filterCategory,
+        this.transactionService.getTransactions(page, this.page_size, 
+                                                this.filterCategory,
+                                                this.filterAccount,
                                                 this.filterFrom, this.filterTo).then(res => {
           this.transactions = res.transactions;
           this.count = res.count;
@@ -62,6 +74,10 @@ export class TransactionComponent implements OnInit {
 
     getCategories(): void {
         this.transactionService.getCategories().then(res => this.categories = res);
+    }
+
+    getAccounts(): void {
+        this.transactionService.getAccounts().then(res => this.accounts = res);
     }
 
     gotoDetail(): void {

@@ -69,6 +69,17 @@
         </button>
     </div>
     <h3>Account</h3>
+    <div class="btn-group-vertical" role="group">
+        <button [class.active]="filterAccount === null" 
+                class="btn btn-default btn-xs"
+                (click)="setFilterAccount(null)">All</button>
+        <button *ngFor="let account of accounts"
+                class="btn btn-default btn-xs" 
+                [class.active]="account == filterAccount"
+                (click)="setFilterAccount(account)">
+        {{account.name}}
+        </button>
+    </div>
 </div>
 </div>
 
