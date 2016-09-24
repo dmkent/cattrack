@@ -53,7 +53,8 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True):
+    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True,
+                 allow_categorisation=True):
         """Load an OFX file into the DB."""
         import ofxparse
         if hasattr(fname, 'read'):
@@ -73,12 +74,18 @@ class Account(models.Model):
             if to_date and tdate > to_date:
                 continue
 
-            Transaction.objects.create(
+            trans = Transaction.objects.create(
                 when=tdate,
                 account=self,
                 description=trans.memo,
                 amount=trans.amount,
             )
+
+            if allow_categorisation:
+                cats = trans.suggest_category()
+                if len(cats) == 1:
+                    trans.category = cats[0]
+                    trans.save()
 
 
 class Category(models.Model):

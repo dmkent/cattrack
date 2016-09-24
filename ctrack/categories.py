@@ -40,6 +40,11 @@ class SklearnCategoriser(Categoriser):
     """
         A Scikit Learn based categoriser.
     """
+    #: The threshold at which to determine only a single category.
+    #: If prob for a category is less than this then we give multiple
+    #: suggestions.
+    THRESH = 0.2
+
     def __init__(self, clf=None):
         self._clf = clf
 
@@ -70,7 +75,14 @@ class SklearnCategoriser(Categoriser):
                 with open(dumped_file, 'wb') as fobj:
                     fobj.write(self.to_bytes())
 
-        return self._clf.predict([text])
+        probs = self._clf.predict_proba([text])
+        probs = pd.Series(probs[0], index=self._clf.classes_).sort_values()[::-1]
+        if probs.iloc[0] > self.THRESH:
+            suggest = [probs.index[0]]
+        else:
+            cumthresh = probs.ix[probs.cumsum() < self.THRESH]
+            suggest = list(cumthresh.index)
+        return suggest
 
     def to_bytes(self):
         """Serialise the model as a byte sequence."""

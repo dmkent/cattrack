@@ -21,6 +21,14 @@
               <dt>Total amount</dt>
               <dd>{{transaction.amount | currency:AUD:true}}</dd>
             </dl>
+            <div *ngIf="suggestions !== null && suggestions.length > 1">
+              Multiple categories were suggested:
+              <ul>
+              <li *ngFor="let suggestion of suggestions">
+                {{suggestion.name}}
+                </li>
+              </ul>
+            </div>
             <form [formGroup]="catForm" novalidate (ngSubmit)="save()" class="form-horizontal">
               <div formArrayName="splits">
                 <fieldset *ngFor="let split of catForm.controls.splits.controls; let i=index">
