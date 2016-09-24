@@ -25,6 +25,7 @@
       'rxjs':                       'npm:rxjs',
       'angular2-in-memory-web-api': 'npm:angular2-in-memory-web-api',
       'moment': 'node_modules/moment/moment.js',
+      "ng2-uploader": "npm:ng2-uploader",
       'ng2-pagination': 'npm:ng2-pagination',
       'jquery': 'npm:jquery',
     },
@@ -50,6 +51,9 @@
         exports: '$',
         main: './dist/jquery.min',
         defaultExtension: 'js'
+      },
+      'ng2-uploader': {
+        main: './ng2-uploader.js'
       }
     }
   });

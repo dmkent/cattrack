@@ -6,6 +6,7 @@ import { Ng2BootstrapModule } from 'ng2-bootstrap/ng2-bootstrap';
 import { Ng2PaginationModule } from 'ng2-pagination';
 import 'jquery';
 import { ModalModule } from 'ng2-bootstrap/ng2-bootstrap';
+import { NgFileSelectDirective } from 'ng2-uploader';
 
 import { routing } from './app.routing';
 import { AppComponent } from './app.component';
@@ -36,7 +37,8 @@ import { AccountDetailComponent } from './account-detail.component';
     DashboardComponent,
     CategoriserComponent,
     AccountComponent,
-    AccountDetailComponent
+    AccountDetailComponent,
+    NgFileSelectDirective
   ],
   providers: [
     TransactionService,

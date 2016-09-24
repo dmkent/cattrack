@@ -1,8 +1,21 @@
 <div *ngIf="account">
     <h2>{{account.name}}</h2>
-    <div class="form-group">
+    <form>
+      <div class="form-group">
         <label for="form-upload">Load data: </label>
-        <input type="file" id="form-upload"/>
+        <input name="data_file" ngFileSelect 
+               type="file" id="form-upload" class="form-control"
+               ngFileSelect
+               [options]="basicOptions" 
+               (onUpload)="handleUpload($event)"/>
+      </div>
+      <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+    <div>
+  Response: {{ response | json }}
     </div>
-    <button (click)="save()" class="btn btn-default">Save</button>
+
+    <div>
+  Progress: {{ progress }}%
+    </div>
 </div>
