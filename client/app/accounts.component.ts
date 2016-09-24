@@ -24,4 +24,8 @@ export class AccountComponent implements OnInit {
     selectAccount(account: Account): void {
         this.selectedAccount = account;
     }
+
+    clearAccount() {
+        this.selectedAccount = null;
+    }
 }

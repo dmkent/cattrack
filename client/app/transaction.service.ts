@@ -22,9 +22,10 @@ export class TransactionService {
     private transUrl = 'http://localhost:8000/api/transactions';
     private catUrl = 'http://localhost:8000/api/categories';
     private accountUrl = 'http://localhost:8000/api/accounts';
+    private authHeader = 'Basic ' + btoa("dkent:thisisapassword");
     private headers = new Headers({
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + btoa("dkent:thisisapassword")
+        'Authorization': this.authHeader,
     });
 
     constructor(private http: Http) { }
@@ -128,6 +129,20 @@ export class TransactionService {
                    .toPromise()
                    .then(res => res.json())
                    .catch(this.handleError);
+    }
+
+    getUploadOptions(account: Account): Object {
+        return {
+            url: this.accountUrl + "/" +
+                 account.id + "/load/",
+            customHeaders: {
+                'Authorization': this.authHeader,
+            },
+            fieldName: "data_file",
+            filterExtensions: true,
+            allowedExtensions: ['ofx'],
+            autoUpload: false,
+        };
     }
 
     private handleError(error: any): Promise<any> {

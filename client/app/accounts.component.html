@@ -4,6 +4,7 @@
     {{acct.name}}
   </li>
 </ul>
-<div *ngIf="selectedAccount !== null">
-<account-detail [account]="selectedAccount"></account-detail>
+<div>
+<account-detail [account]="selectedAccount"
+                (onReset)="clearAccount()"></account-detail>
 </div>

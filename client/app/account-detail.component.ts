@@ -1,5 +1,5 @@
-import { Component, Input, NgZone, OnInit, OnChanges, SimpleChanges } from '@angular/core';
-import { FormGroup } from '@angular/forms';
+import { Component, Input, Output, NgZone, OnInit, SimpleChanges, EventEmitter, ViewChild } from '@angular/core';
+import { FormGroup, NgForm, FormControlDirective } from '@angular/forms';
 import { ActivatedRoute, Params } from '@angular/router';
 
 import { Account } from './account';
@@ -9,31 +9,21 @@ import { TransactionService } from './transaction.service';
   selector: 'account-detail',
   templateUrl: 'app/account-detail.component.html',
 })
-export class AccountDetailComponent implements OnInit, OnChanges {
+export class AccountDetailComponent implements OnInit {
     @Input()
     account: Account;
 
+    @Output() 
+    onReset: EventEmitter<any> = new EventEmitter();
+
     private zone: NgZone;
-    private basicOptions: Object;
+    private uploadEvents: EventEmitter<any> = new EventEmitter();
     private progress: number = 0;
-    private response: any = {};
+    private result: any = {};
+    private loading: boolean = false;
     
     ngOnInit() {
         this.zone = new NgZone({ enableLongStackTrace: false });
-        
-    }
-
-    ngOnChanges(changes: SimpleChanges) {
-      if (this.account !== undefined){
-          this.basicOptions = {
-              url: "http://localhost:8000/api/accounts/" +
-                  this.account.id + "/load/",
-              customHeaders: {
-                'Authorization': 'Basic ' + btoa("dkent:thisisapassword")
-              },
-              fieldName: "data_file"
-          };
-      }
     }
 
     constructor(
@@ -42,10 +32,40 @@ export class AccountDetailComponent implements OnInit, OnChanges {
 
     }
 
+    startUpload() {
+        this.loading = true;
+        this.uploadEvents.emit('startUpload');
+    }
+
     handleUpload(data: any): void {
         this.zone.run(() => {
-            this.response = data;
-            this.progress = data.progress.percent / 100;
+            this.progress = data.progress.percent;
+            if (data.error || data.abort || (data.done && data.status != 200)){
+                this.result = {
+                    error: true,
+                    success: false,
+                    message: 'Failed to upload data: ' + data.response
+                };
+                this.loading = false;
+                this.reset();
+            }
+            else if ( data.done ){
+                this.result = {
+                    error: false,
+                    success: true,
+                    message: 'Successfully loaded data.'
+                };
+                this.loading = false;
+                this.reset();
+            }
+            else {
+                this.result = null
+            }
         });
+    }
+
+    reset() {
+        this.account = null;
+        this.onReset.emit();
     }
 }

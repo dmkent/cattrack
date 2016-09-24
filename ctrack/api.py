@@ -39,7 +39,11 @@ class AccountViewSet(viewsets.ModelViewSet):
         account = self.get_object()
         serializer = LoadDataSerializer(data=request.data)
         if serializer.is_valid():
-            account.load_ofx(serializer.validated_data['data_file'])
+            try:
+                account.load_ofx(serializer.validated_data['data_file'])
+            except (ValueError, IOError, TypeError):
+                return response.Response("Unable to load file. Bad format?",
+                                         status=status.HTTP_400_BAD_REQUEST)
             return response.Response({'status': 'loaded'})
         else:
             return response.Response(serializer.errors,

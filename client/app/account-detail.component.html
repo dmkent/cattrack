@@ -3,19 +3,31 @@
     <form>
       <div class="form-group">
         <label for="form-upload">Load data: </label>
-        <input name="data_file" ngFileSelect 
+        <input name="data_file" ngFileSelect
                type="file" id="form-upload" class="form-control"
                ngFileSelect
-               [options]="basicOptions" 
-               (onUpload)="handleUpload($event)"/>
+               [options]="transactionService.getUploadOptions(account)" 
+               (onUpload)="handleUpload($event)"
+               [events]="uploadEvents"
+               accept=".ofx, application/x-ofx"
+               [disabled]="loading"/>
+          <div [class.hidden]="!loading">
+            <p><span class="spinner">Loading...</span>
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" [attr.aria-valuenow]="progress" 
+                   aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
+                <span class="sr-only">{{progress}}% Complete</span>
+              </div>
+          </div>
+          </div>
       </div>
-      <button type="submit" class="btn btn-default">Submit</button>
+      <button type="submit" class="btn btn-default" (click)=startUpload()
+              [disabled]="loading">Submit</button>
     </form>
-    <div>
-  Response: {{ response | json }}
-    </div>
-
-    <div>
-  Progress: {{ progress }}%
-    </div>
+</div>
+<div *ngIf="result" class="alert" 
+     [class.alert-success]="result.success"
+     [class.alert-danger]="result.error"
+    role="alert">
+    {{result.message}}
 </div>

@@ -15,7 +15,6 @@ import { TransactionComponent } from './transaction.component';
 import { TransactionService } from './transaction.service';
 import { DashboardComponent } from './dashboard.component';
 import { CategoriserComponent } from './categoriser.component';
-import { FileUploadService } from './file-upload.service';
 import { AccountComponent } from './accounts.component';
 import { AccountDetailComponent } from './account-detail.component';
 
@@ -41,8 +40,7 @@ import { AccountDetailComponent } from './account-detail.component';
     NgFileSelectDirective
   ],
   providers: [
-    TransactionService,
-    FileUploadService
+    TransactionService
   ],
   bootstrap:    [ AppComponent ]
 })
