@@ -97,6 +97,13 @@ export class TransactionService {
                .then(() => second_request(transaction));
     }
 
+    categorySuggestions(transaction: Transaction): Promise<Category[]> {
+        const url = `${this.transUrl}/${transaction.id}/suggest`
+        return this.http.get(url).toPromise()
+               .then(res => res.json() as Category[])
+               .catch(this.handleError);
+    }
+
     create(descr: string): Promise<Transaction> {
         return this.http
             .post(this.transUrl, JSON.stringify({

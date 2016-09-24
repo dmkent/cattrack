@@ -32,6 +32,7 @@ export class CategoriserComponent implements OnInit {
     onSave: EventEmitter<any> = new EventEmitter();
 
     categories: Category[];
+    suggestions: Category[];
 
     public catForm: FormGroup;
 
@@ -55,7 +56,12 @@ export class CategoriserComponent implements OnInit {
         let init_cat = null;
         if (isFirst && this.transaction !== undefined) {
             init_amount = "" + this.transaction.amount;
-            init_cat = "" + this.transaction.category;
+            if (this.transaction.category !== null){
+                init_cat = "" + this.transaction.category;
+            }
+            else if (this.suggestions.length > 0){
+                init_cat = "" + this.suggestions[0].id;
+            }
         }
         return this.formBuilder.group({
             category: [init_cat, Validators.required],
@@ -77,12 +83,18 @@ export class CategoriserComponent implements OnInit {
         this.catForm.controls['splits'] = this.formBuilder.array([
             this.initSplitCats(true),
         ]);
+        this.catForm.updateValueAndValidity();
     }
 
     show(transaction: Transaction){
         this.transaction = transaction;
         this.catForm.setValidators(totalAmountValidator(this.transaction.amount));
-        this.resetSplitCat();
+        this.suggestions = null;
+        this.transactionService.categorySuggestions(this.transaction)
+            .then(cats => {
+                this.suggestions = cats;
+                this.resetSplitCat();
+            });
         this.childModal.show();
     }
 
