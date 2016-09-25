@@ -11,7 +11,7 @@ import { TransactionService } from './transaction.service';
   selector: 'my-dashboard',
   templateUrl: 'dashboard.component.html'
 })
-export class DashboardComponent implements OnInit { 
+export class DashboardComponent implements OnInit {
     transactions: Transaction[] = [];
     periods: Period[];
     summaries: CategorySummary[] = null;
@@ -20,7 +20,7 @@ export class DashboardComponent implements OnInit {
 
     constructor(
         private transactionService: TransactionService,
-        private router: Router){}
+        private router: Router) {}
 
     ngOnInit(): void {
         this.transactionService.getTransactions(1)
@@ -30,7 +30,7 @@ export class DashboardComponent implements OnInit {
         this.updatePeriod(null, null);
     }
 
-    updatePeriod(from_date: Date, to_date: Date){
+    updatePeriod(from_date: Date, to_date: Date) {
         this.filterFrom = from_date;
         this.filterTo = to_date;
         this.transactionService.getTransactionsSummary(null, null, from_date, to_date)
@@ -39,6 +39,6 @@ export class DashboardComponent implements OnInit {
 
     gotoDetail(transaction: Transaction): void {
         let link = ['/detail', transaction.id];
-        this.router.navigate(link)
+        this.router.navigate(link);
     }
 }

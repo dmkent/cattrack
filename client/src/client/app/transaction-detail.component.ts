@@ -15,7 +15,7 @@ export class TransactionDetailComponent implements OnInit {
 
     constructor(
       private transactionService: TransactionService,
-      private route: ActivatedRoute){
+      private route: ActivatedRoute) {
 
     }
 

@@ -8,7 +8,7 @@ export class Transaction {
     account: number;
 }
 
-export class TransactionPage{
+export class TransactionPage {
     count: number;
     transactions: Transaction[];
 }

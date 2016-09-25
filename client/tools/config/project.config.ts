@@ -30,7 +30,7 @@ export class ProjectConfig extends SeedConfig {
       ...this.APP_ASSETS,
       // {src: `${this.APP_SRC}/your-path-to-lib/libs/jquery-ui.js`, inject: true, vendor: false}
       // {src: `${this.CSS_SRC}/path-to-lib/test-lib.css`, inject: true, vendor: false},
-      {src: "node_modules/bootstrap/dist/css/bootstrap.min.css", inject: true, vendor: true}
+      {src: 'node_modules/bootstrap/dist/css/bootstrap.min.css', inject: true, vendor: true}
     ];
 
     /* Add to or override NPM module configurations: */
@@ -42,7 +42,7 @@ export class ProjectConfig extends SeedConfig {
       'jquery': 'node_modules/jquery',
       'moment': 'node_modules/moment'
     });
-    
+
     this.SYSTEM_CONFIG_DEV.packages['ng2-uploader'] = {
         main: './ng2-uploader.js'
     };

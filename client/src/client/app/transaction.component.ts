@@ -6,7 +6,6 @@ import { Account } from './account';
 import { Category } from './category';
 import { Period } from './period';
 import { TransactionService } from './transaction.service';
-import { CategoriserComponent } from './categoriser.component';
 
 @Component({
   moduleId: module.id,
@@ -14,8 +13,8 @@ import { CategoriserComponent } from './categoriser.component';
   templateUrl: 'transaction.component.html'
 })
 export class TransactionComponent implements OnInit {
-    title = "CatTrack";
-    subtitle = "Track spending by category.";
+    title = 'CatTrack';
+    subtitle = 'Track spending by category.';
     transactions: Transaction[];
     categories: Category[];
     accounts: Account[];
@@ -32,7 +31,7 @@ export class TransactionComponent implements OnInit {
 
     constructor(
       private transactionService: TransactionService,
-      private router: Router){ }
+      private router: Router) {}
 
     ngOnInit(): void {
         this.getTransactions(this.page);
@@ -70,11 +69,11 @@ export class TransactionComponent implements OnInit {
     }
 
     getTransactions(page?: number): void {
-        if (page === undefined){
+        if (page === undefined) {
             page = this.page;
         }
         this.loading = true;
-        this.transactionService.getTransactions(page, this.page_size, 
+        this.transactionService.getTransactions(page, this.page_size,
                                                 this.filterCategory,
                                                 this.filterAccount,
                                                 this.filterFrom, this.filterTo).then(res => {

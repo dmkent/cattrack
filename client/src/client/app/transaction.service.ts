@@ -9,9 +9,9 @@ import { Account } from './account';
 import { Period } from './period';
 
 
-function tpFromResponse(response: Response): TransactionPage{
+function tpFromResponse(response: Response): TransactionPage {
     let decoded = response.json();
-    let tp = new TransactionPage()
+    let tp = new TransactionPage();
     tp.count = decoded.count;
     tp.transactions = decoded.results as Transaction[];
     return tp;
@@ -24,7 +24,7 @@ export class TransactionService {
     private catUrl = 'http://localhost:8000/api/categories';
     private accountUrl = 'http://localhost:8000/api/accounts';
     private periodUrl = 'http://localhost:8000/api/periods/';
-    private authHeader = 'Basic ' + btoa("dkent:thisisapassword");
+    private authHeader = 'Basic ' + btoa('dkent:thisisapassword');
     private headers = new Headers({
         'Content-Type': 'application/json',
         'Authorization': this.authHeader,
@@ -32,26 +32,26 @@ export class TransactionService {
 
     constructor(private http: Http) { }
 
-    getTransactions(page: number, page_size: number = 10, 
-                    category: Category = null, 
+    getTransactions(page: number, page_size: number = 10,
+                    category: Category = null,
                     account: Account = null,
-                    from_date: Date = null, 
+                    from_date: Date = null,
                     to_date: Date = null): Promise<TransactionPage> {
         let args = new URLSearchParams();
-        args.set('page', "" + page);
-        args.set('page_size', "" + page_size);
-        args.set('format', "json");
+        args.set('page', '' + page);
+        args.set('page_size', '' + page_size);
+        args.set('format', 'json');
 
-        if (category !== null){
-            args.set('category', "" + category.id);
+        if (category !== null) {
+            args.set('category', '' + category.id);
         }
-        if (account !== null){
-            args.set('account', "" + account.id);
+        if (account !== null) {
+            args.set('account', '' + account.id);
         }
-        if (from_date !== null){
+        if (from_date !== null) {
             args.set('from_date', from_date.toString());
         }
-        if (to_date !== null){
+        if (to_date !== null) {
             args.set('to_date', to_date.toString());
         }
         return this.http.get(this.transUrl + '/', {search: args})
@@ -60,23 +60,23 @@ export class TransactionService {
                    .catch(this.handleError);
     }
 
-    getTransactionsSummary(category: Category = null, 
+    getTransactionsSummary(category: Category = null,
                            account: Account = null,
-                           from_date: Date = null, 
+                           from_date: Date = null,
                            to_date: Date = null): Promise<CategorySummary[]> {
         let args = new URLSearchParams();
-        args.set('format', "json");
+        args.set('format', 'json');
 
-        if (category !== null){
-            args.set('category', "" + category.id);
+        if (category !== null) {
+            args.set('category', '' + category.id);
         }
-        if (account !== null){
-            args.set('account', "" + account.id);
+        if (account !== null) {
+            args.set('account', '' + account.id);
         }
-        if (from_date !== null){
+        if (from_date !== null) {
             args.set('from_date', from_date.toString());
         }
-        if (to_date !== null){
+        if (to_date !== null) {
             args.set('to_date', to_date.toString());
         }
         return this.http.get(this.transUrl + '/summary/', {search: args})
@@ -95,9 +95,9 @@ export class TransactionService {
 
     updateTransaction(transaction: Transaction, splits: any = null): Promise<Transaction> {
         const url = `${this.transUrl}/${transaction.id}/`;
-        const splitsUrl = url + "split/"
+        const splitsUrl = url + 'split/';
 
-        if (splits !== null && splits.length == 1){
+        if (splits !== null && splits.length === 1) {
             let new_category = splits[0].category;
             transaction.category = new_category;
         }
@@ -128,7 +128,7 @@ export class TransactionService {
     }
 
     categorySuggestions(transaction: Transaction): Promise<Category[]> {
-        const url = `${this.transUrl}/${transaction.id}/suggest`
+        const url = `${this.transUrl}/${transaction.id}/suggest`;
         return this.http.get(url).toPromise()
                .then(res => res.json() as Category[])
                .catch(this.handleError);
@@ -139,7 +139,7 @@ export class TransactionService {
             .post(this.transUrl, JSON.stringify({
                 description: descr,
                 amount: 43,
-                when: "2014-03-02T00:00",
+                when: '2014-03-02T00:00',
                 account: 1,
             }), {headers: this.headers})
             .toPromise()
@@ -184,12 +184,12 @@ export class TransactionService {
 
     getUploadOptions(account: Account): Object {
         return {
-            url: this.accountUrl + "/" +
-                 account.id + "/load/",
+            url: this.accountUrl + '/' +
+                 account.id + '/load/',
             customHeaders: {
                 'Authorization': this.authHeader,
             },
-            fieldName: "data_file",
+            fieldName: 'data_file',
             filterExtensions: true,
             allowedExtensions: ['ofx'],
             autoUpload: false,

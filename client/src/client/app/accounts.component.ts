@@ -15,7 +15,7 @@ export class AccountComponent implements OnInit {
 
     constructor(
         private transactionService: TransactionService,
-        private router: Router){}
+        private router: Router) {}
 
     ngOnInit(): void {
         this.transactionService.getAccounts()

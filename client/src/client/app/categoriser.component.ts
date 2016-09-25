@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, ViewChild } from '@angular/core';
-import { Validators, FormGroup, FormArray, FormBuilder, Validator } from '@angular/forms';
+import { Validators, FormGroup, FormArray, FormBuilder } from '@angular/forms';
 import { ModalDirective } from 'ng2-bootstrap/ng2-bootstrap';
 
 import { Transaction } from './transaction';
@@ -13,11 +13,11 @@ let totalAmountValidator = (expected: number) => {
         for (let split of g.controls['splits'].value){
             total += +split.amount;
         }
-        if (total != expected){
+        if (total !== expected) {
             return {'amountTotalIncorrect': true};
         }
         return null;
-    }
+    };
 };
 
 @Component({
@@ -29,7 +29,7 @@ export class CategoriserComponent implements OnInit {
     @Input()
     transaction: Transaction = null;
 
-    @Output() 
+    @Output()
     onSave: EventEmitter<any> = new EventEmitter();
 
     categories: Category[];
@@ -40,7 +40,7 @@ export class CategoriserComponent implements OnInit {
     @ViewChild('catmodal') public childModal:ModalDirective;
 
     constructor(private transactionService: TransactionService,
-                private formBuilder: FormBuilder){}
+                private formBuilder: FormBuilder) {}
 
     ngOnInit(): void {
         this.catForm = this.formBuilder.group({
@@ -56,12 +56,11 @@ export class CategoriserComponent implements OnInit {
         let init_amount: string = '';
         let init_cat: string = null;
         if (isFirst && this.transaction !== undefined) {
-            init_amount = "" + this.transaction.amount;
-            if (this.transaction.category !== null){
-                init_cat = "" + this.transaction.category;
-            }
-            else if (this.suggestions.length > 0){
-                init_cat = "" + this.suggestions[0].id;
+            init_amount = '' + this.transaction.amount;
+            if (this.transaction.category !== null) {
+                init_cat = '' + this.transaction.category;
+            } else if (this.suggestions.length > 0) {
+                init_cat = '' + this.suggestions[0].id;
             }
         }
         return this.formBuilder.group({
@@ -71,12 +70,12 @@ export class CategoriserComponent implements OnInit {
     }
 
     addSplitCat() {
-        const control = <FormArray>this.catForm.controls['splits']
+        const control = <FormArray>this.catForm.controls['splits'];
         control.push(this.initSplitCats());
     }
 
     removeSplitCat(i: number) {
-        const control = <FormArray>this.catForm.controls['splits']
+        const control = <FormArray>this.catForm.controls['splits'];
         control.removeAt(i);
     }
 
@@ -87,7 +86,7 @@ export class CategoriserComponent implements OnInit {
         this.catForm.updateValueAndValidity();
     }
 
-    show(transaction: Transaction){
+    show(transaction: Transaction) {
         this.transaction = transaction;
         this.catForm.setValidators(totalAmountValidator(this.transaction.amount));
         this.suggestions = null;
@@ -100,7 +99,6 @@ export class CategoriserComponent implements OnInit {
     }
 
     save(): void {
-      let model = this.catForm;
       this.transactionService.updateTransaction(this.transaction,
                                                 this.catForm.value.splits)
                              .then((t) => {
