@@ -8,6 +8,6 @@ import Config from '../../config';
  * current application environment.
  */
 export = () => {
-  return gulp.src(join(Config.APP_SRC, '**/*.ts'))
-    .pipe(gulp.dest(Config.APP_DEST));
+  return gulp.src('node_modules/bootstrap/dist/fonts/*')
+    .pipe(gulp.dest(join(Config.APP_DEST, '/fonts')));
 };
