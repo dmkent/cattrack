@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Transaction } from './transaction';
 import { Account } from './account';
 import { Category } from './category';
+import { Period } from './period';
 import { TransactionService } from './transaction.service';
 import { CategoriserComponent } from './categoriser.component';
 
@@ -18,6 +19,7 @@ export class TransactionComponent implements OnInit {
     transactions: Transaction[];
     categories: Category[];
     accounts: Account[];
+    periods: Period[];
     count: number = 1;
     page: number = 1;
     page_size: number = 20;
@@ -36,6 +38,7 @@ export class TransactionComponent implements OnInit {
         this.getTransactions(this.page);
         this.getCategories();
         this.getAccounts();
+        this.getPeriods();
     }
 
     onSelect(transaction: Transaction): void {
@@ -51,6 +54,13 @@ export class TransactionComponent implements OnInit {
     setFilterAccount(account: Account): void {
         this.filterAccount = account;
         this.page = 1;
+        this.getTransactions(this.page);
+    }
+
+    setFilterDates(from_date: Date, to_date: Date): void {
+        this.page = 1;
+        this.filterFrom = from_date;
+        this.filterTo = to_date;
         this.getTransactions(this.page);
     }
 
@@ -81,6 +91,10 @@ export class TransactionComponent implements OnInit {
 
     getAccounts(): void {
         this.transactionService.getAccounts().then(res => this.accounts = res);
+    }
+
+    getPeriods(): void {
+        this.transactionService.getPeriods().then(res => this.periods = res);
     }
 
     gotoDetail(): void {

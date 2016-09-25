@@ -1,4 +1,7 @@
+from dateutil.relativedelta import relativedelta
 from django.db import models
+import numpy as np
+import pandas as pd
 import pytz
 
 from ctrack import categories
@@ -94,3 +97,78 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class PeriodDefinition(models.Model):
+    label = models.CharField(max_length=20)
+    anchor_date = models.DateField(null=True, blank=True)
+    frequency = models.CharField(max_length=10)
+
+    def __init__(self, *args, **kwargs):
+        super(PeriodDefinition, self).__init__(*args, **kwargs)
+        self._index = None
+        self._ranges = None
+
+    def __str__(self):
+        return self.label
+
+    @property
+    def index(self):
+        if self._index is None:
+            offset = pd.datetools.to_offset(self.frequency)
+            end_date = date.today() + offset
+            start_date = end_date - relativedelta(years=1) - offset
+
+            if self.anchor_date is None:
+                dates = pd.date_range(start_date, end_date, 
+                                      freq=self.frequency)
+            else:
+                if pd.Timestamp(self.anchor_date) > start_date:
+                    raise ValueError("unable to anchor periods")
+                    
+                dates = pd.date_range(self.anchor_date, end_date, 
+                                        freq=self.frequency)
+                dates = dates[dates >= np.datetime64(start_date)]
+            self._index = dates
+        return self._index
+
+    @property
+    def date_ranges(self):
+        if self._ranges is None:
+            dates = self.index
+            self._ranges = [(start, start_next - relativedelta(days=1)) 
+                            for start, start_next in zip(dates[:-1], dates[1:])]
+        return self._ranges
+
+    @property
+    def current(self):
+        return self.date_ranges[-1]
+
+    @property
+    def previous(self):
+        return self.date_ranges[-2]
+
+    def summarise(self, queryset):
+        for start, end in self.date_ranges:
+            yield queryset.filter(
+                when__gte=start, when__lte=end
+            ).values('category', 'category__name').annotate(total=models.Sum('amount'))
+
+    @property
+    def option_specifiers(self):
+        fmt = '%Y-%m-%d'
+        return [
+            {
+                "label": "Current " + self.label,
+                "from_date": self.current[0].strftime(fmt),
+                "to_date": self.current[1].strftime(fmt),
+                "id": self.pk,
+                "offset": 1,
+            }, {
+                "label": "Previous " + self.label,
+                "from_date": self.previous[0].strftime(fmt),
+                "to_date": self.previous[1].strftime(fmt),
+                "id": self.pk,
+                "offset": 2,
+            }
+        ]

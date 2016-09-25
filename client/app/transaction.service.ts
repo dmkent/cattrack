@@ -4,8 +4,9 @@ import { Headers, Http, Response, URLSearchParams } from '@angular/http';
 import 'rxjs/add/operator/toPromise';
 
 import { Transaction, TransactionPage } from './transaction';
-import { Category } from './category';
+import { Category, CategorySummary } from './category';
 import { Account } from './account';
+import { Period } from './period';
 
 
 function tpFromResponse(response: Response): TransactionPage{
@@ -22,6 +23,7 @@ export class TransactionService {
     private transUrl = 'http://localhost:8000/api/transactions';
     private catUrl = 'http://localhost:8000/api/categories';
     private accountUrl = 'http://localhost:8000/api/accounts';
+    private periodUrl = 'http://localhost:8000/api/periods/';
     private authHeader = 'Basic ' + btoa("dkent:thisisapassword");
     private headers = new Headers({
         'Content-Type': 'application/json',
@@ -57,6 +59,32 @@ export class TransactionService {
                    .then(tpFromResponse)
                    .catch(this.handleError);
     }
+
+    getTransactionsSummary(category: Category = null, 
+                           account: Account = null,
+                           from_date: Date = null, 
+                           to_date: Date = null): Promise<CategorySummary[]> {
+        let args = new URLSearchParams();
+        args.set('format', "json");
+
+        if (category !== null){
+            args.set('category', "" + category.id);
+        }
+        if (account !== null){
+            args.set('account', "" + account.id);
+        }
+        if (from_date !== null){
+            args.set('from_date', from_date.toString());
+        }
+        if (to_date !== null){
+            args.set('to_date', to_date.toString());
+        }
+        return this.http.get(this.transUrl + '/summary/', {search: args})
+                   .toPromise()
+                   .then(res => res.json() as CategorySummary[])
+                   .catch(this.handleError);
+    }
+
 
     getTransaction(id: number): Promise<Transaction> {
         return this.http.get(this.transUrl + '/' + id)
@@ -140,6 +168,15 @@ export class TransactionService {
         return this.http.get(this.accountUrl, {search: args})
                    .toPromise()
                    .then(res => res.json())
+                   .catch(this.handleError);
+    }
+
+    getPeriods(): Promise<Period[]> {
+        let args = new URLSearchParams();
+        args.set('format', 'json');
+        return this.http.get(this.periodUrl, {search: args})
+                   .toPromise()
+                   .then(res => res.json() as Period[])
                    .catch(this.handleError);
     }
 

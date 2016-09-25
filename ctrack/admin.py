@@ -7,3 +7,4 @@ class TransactionAdmin(admin.ModelAdmin):
 
 admin.site.register(models.Transaction, TransactionAdmin)
 admin.site.register(models.SplitTransaction, TransactionAdmin)
+admin.site.register(models.PeriodDefinition)

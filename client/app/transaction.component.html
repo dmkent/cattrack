@@ -57,6 +57,17 @@
             (click)="updateFilters()">
         Update
     </button>
+    <p>-- OR --</p>
+    <div class="btn-group-vertical" role="group">
+        <button [class.active]="filterFrom === null && filterTo === null" 
+                class="btn btn-default btn-xs"
+                (click)="setFilterDates(null, null)">All</button>
+        <button *ngFor="let period of periods"
+                class="btn btn-default btn-xs"
+                (click)="setFilterDates(period.from_date, period.to_date)">
+            {{period.label}}
+        </button>
+    </div>
     <h3>Category</h3>
     <div class="btn-group-vertical" role="group">
         <button [class.active]="filterCategory === null" 

@@ -1,11 +1,14 @@
 """ctrack REST API
 """
+from datetime import date
+
+from django.db.models import Sum, Count
 from django.conf.urls import url, include
 from django.http import Http404, HttpResponseBadRequest
 from rest_framework import (decorators, filters, generics, pagination, response, routers,
                             serializers, status, views, viewsets)
 import django_filters
-from ctrack.models import Account, Category, Transaction
+from ctrack.models import Account, Category, Transaction, PeriodDefinition
 
 # Serializers define the API representation.
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
@@ -35,6 +38,22 @@ class SplitTransSerializer(serializers.Serializer):
 
 class LoadDataSerializer(serializers.Serializer):
     data_file = serializers.FileField()
+
+
+class PeriodDefinitionSerializer(serializers.Serializer):
+    label = serializers.CharField(max_length=40)
+    from_date = serializers.DateField()
+    to_date = serializers.DateField()
+
+    id = serializers.IntegerField()
+    offset = serializers.IntegerField()
+
+
+class SummarySerializer(serializers.Serializer):
+    category = serializers.IntegerField()
+    category_name = serializers.CharField(max_length=40, source='category__name')
+    total = serializers.DecimalField(max_digits=20, decimal_places=2)
+    
 
 # ViewSets define the view behavior.
 class AccountViewSet(viewsets.ModelViewSet):
@@ -94,6 +113,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
                                      status=status.HTTP_400_BAD_REQUEST)
         return response.Response({"message": "Success"})
 
+    @decorators.list_route(methods=["get"])
+    def summary(self, request):
+        queryset = self.filter_queryset(self.get_queryset().order_by())
+        result = queryset.values('category', 'category__name').annotate(total=Sum('amount')).order_by('total')
+        serialised = SummarySerializer(result, many=True)
+        return response.Response(serialised.data)
+
 
 class SuggestCategories(generics.ListAPIView):
     """
@@ -109,11 +135,21 @@ class SuggestCategories(generics.ListAPIView):
         return Category.objects.filter(name__in=transaction.suggest_category())
 
 
+class PeriodDefinitionView(views.APIView):
+    queryset = PeriodDefinition.objects.all()
+    
+    def get(self, formats=None):
+        data = sum((period.option_specifiers
+                    for period in PeriodDefinition.objects.all()), [])
+        return response.Response(data)
+
+
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)
 router.register(r'categories', CategoryViewSet)
 router.register(r'transactions', TransactionViewSet)
 urls = [
     url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
+    url(r'^periods/$', PeriodDefinitionView.as_view()),
     url(r'^', include(router.urls)),
 ]

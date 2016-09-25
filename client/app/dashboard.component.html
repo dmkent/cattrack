@@ -1,4 +1,24 @@
 <h3>Recent transactions</h3>
+<div class="btn-group-vertical" role="group">
+        <button [class.active]="filterFrom === null && filterTo === null" 
+                class="btn btn-default btn-xs"
+                (click)="updatePeriod(null, null)">All</button>
+        <button *ngFor="let period of periods"
+                class="btn btn-default btn-xs"
+                (click)="updatePeriod(period.from_date, period.to_date)">
+            {{period.label}}
+        </button>
+</div>
+<table *ngIf="summaries !== null && summaries.length > 0" class="table">
+  <tr>
+    <th>Category</th>
+    <th>Total from {{filterFrom | date}} to {{filterTo | date}}</th>
+  </tr>
+  <tr *ngFor="let summary of summaries">
+    <td>{{summary.category_name}}</td>
+    <td>{{summary.total | currency:AUD:true }}</td>
+  </tr>
+</table>
 <div class="grid grid-pad">
   <div *ngFor="let trans of transactions" (click)="gotoDetail(trans)" class="col-1-4">
     <div class="module transactions">
