@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 
@@ -12,26 +12,35 @@ import {
 import {
   RouterTestingModule
 } from '@angular/router/testing';
+
+import { Ng2PaginationModule } from 'ng2-pagination';
+import { Ng2BootstrapModule } from 'ng2-bootstrap/ng2-bootstrap';
+import { ModalModule } from 'ng2-bootstrap/ng2-bootstrap';
+import { NgFileSelectDirective } from 'ng2-uploader';
+
 import { AppComponent } from './app.component';
-import { HomeComponent } from './home/home.component';
-import { AboutComponent } from './about/about.component';
-import { ToolbarComponent } from './shared/toolbar/toolbar.component';
-import { NavbarComponent } from './shared/navbar/navbar.component';
+import { DashboardComponent } from './dashboard.component';
+import { TransactionComponent } from './transaction.component';
+import { AccountDetailComponent } from './account-detail.component';
+import { CategoriserComponent } from './categoriser.component';
 
 export function main() {
 
   describe('App component', () => {
 
     let config: Route[] = [
-      { path: '', component: HomeComponent },
-      { path: 'about', component: AboutComponent }
+      { path: '', component: DashboardComponent },
+      { path: 'transactions', component: TransactionComponent }
     ];
     beforeEach(() => {
       TestBed.configureTestingModule({
-        imports: [FormsModule, RouterTestingModule.withRoutes(config)],
-        declarations: [TestComponent, ToolbarComponent,
-          NavbarComponent, AppComponent,
-          HomeComponent, AboutComponent],
+        imports: [FormsModule, RouterTestingModule.withRoutes(config),
+                  Ng2PaginationModule, Ng2BootstrapModule,
+                  ModalModule, ReactiveFormsModule],
+        declarations: [TestComponent, DashboardComponent,
+          TransactionComponent, AppComponent,
+          AccountDetailComponent, CategoriserComponent,
+          NgFileSelectDirective],
         providers: [
           { provide: APP_BASE_HREF, useValue: '/' }
         ]

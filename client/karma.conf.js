@@ -54,7 +54,10 @@ module.exports = function (config) {
 
       'test-config.js',
       'dist/dev/app/system-config.js',
-      'test-main.js'
+      'test-main.js',
+
+      { pattern: 'node_modules/ng2-*/**/*.js', included: false, watched: false },
+      'node_modules/moment/moment.js'
     ],
 
     // must go along with above, suppress annoying 404 warnings.

@@ -39,17 +39,32 @@ export class ProjectConfig extends SeedConfig {
     this.mergeObject(this.SYSTEM_CONFIG_DEV.paths, {
       'ng2-uploader': 'node_modules/ng2-uploader',
       'ng2-pagination': 'node_modules/ng2-pagination',
+      'ng2-bootstrap': 'node_modules/ng2-bootstrap',
       'jquery': 'node_modules/jquery',
       'moment': 'node_modules/moment'
     });
 
-    this.SYSTEM_CONFIG_DEV.packages['ng2-uploader'] = {
+    this.mergeObject(this.SYSTEM_CONFIG_DEV.packages, {
+      'ng2-uploader': {
         main: './ng2-uploader.js'
-    };
+      },
+      'ng2-bootstrap': {
+        main: './ng2-bootstrap.js'
+      },
+      'moment': {
+        main: './moment.js'
+      },
+      'ng2-pagination': {
+        main: './index.js'
+      },
+    });
 
     this.mergeObject(this.SYSTEM_BUILDER_CONFIG.packages, {
       'ng2-uploader': {
         main: './ng2-uploader.js'
+      },
+      'ng2-bootstrap': {
+        main: './ng2-bootstrap.js'
       },
       'ng2-pagination': {
         main: './index.js'
