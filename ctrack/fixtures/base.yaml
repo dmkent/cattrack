@@ -1,0 +1,107 @@
+- model: ctrack.account
+  pk: 1
+  fields:
+    name: Statement Account
+- model: ctrack.account
+  pk: 2
+  fields:
+    name: Savings
+- model: ctrack.account
+  pk: 3
+  fields:
+    name: Credit Card
+- model: ctrack.Category
+  pk: 1
+  fields:
+    name: Transfer
+- model: ctrack.Category
+  pk: 2
+  fields:
+    name: Food
+- model: ctrack.Category
+  pk: 3
+  fields: 
+    name: Caffeine
+- model: ctrack.Category
+  pk: 4
+  fields:
+    name: Internet
+- model: ctrack.Transaction
+  pk: 1
+  fields:
+    description: Bought dinner
+    when: 2015-12-31
+    amount: -32.67
+    category: 2
+    account: 1
+- model: ctrack.Transaction
+  pk: 2
+  fields:
+    description: Bought round drinks
+    when: 2015-12-31
+    amount: -90.32
+    category: 3
+    account: 3
+- model: ctrack.Transaction
+  pk: 3
+  fields:
+    description: Kebabs
+    when: 2015-12-31
+    amount: -9.30
+    category: 2
+    account: 3
+- model: ctrack.Transaction
+  pk: 4
+  fields:
+    description: Coffee
+    when: 2016-01-01
+    amount: -3.21
+    category: 3
+    account: 1
+- model: ctrack.Transaction
+  pk: 5
+  fields:
+    description: Paid bill
+    when: 2016-01-02
+    amount: -53.12
+    category: 4
+    account: 1
+- model: ctrack.Transaction
+  pk: 6
+  fields:
+    description: Groceries
+    when: 2016-01-05
+    amount: -93.67
+    category: 2
+    account: 1
+- model: ctrack.Transaction
+  pk: 7
+  fields:
+    description: Paid credit card bill
+    when: 2016-01-10
+    amount: -300.00
+    category: 1
+    account: 1
+- model: ctrack.Transaction
+  pk: 8
+  fields:
+    description: Payment received
+    when: 2016-01-10
+    amount: 300.00
+    category: 1
+    account: 3
+- model: ctrack.PeriodDefinition
+  pk: 1
+  fields:
+    label: Month
+    frequency: MS
+- model: ctrack.PeriodDefinition
+  pk: 2
+  fields:
+    label: Financial Year
+    frequency: AS-JUL
+- model: ctrack.PeriodDefinition
+  pk: 3
+  fields:
+    label: Work week
+    frequency: W-THU
