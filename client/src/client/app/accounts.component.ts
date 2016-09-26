@@ -11,7 +11,7 @@ import { TransactionService } from './transaction.service';
 })
 export class AccountComponent implements OnInit {
     accounts: Account[] = [];
-    selectedAccount: Account;
+    selectedAccount: Account = null;
 
     constructor(
         private transactionService: TransactionService,
