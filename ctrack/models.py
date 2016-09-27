@@ -188,6 +188,10 @@ class Bill(models.Model):
     document = models.FileField(null=True)
     series = models.ForeignKey('RecurringPayment', related_name="bills")
 
+    @property
+    def is_paid(self):
+        return self.paying_transactions.aggregate(total=models.Sum('amount'))[0]['total'] == self.due_amount
+
     def __str__(self):
         return "{} bill of ${:.2f} due on {}".format(
             self.description,

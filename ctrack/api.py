@@ -8,7 +8,7 @@ from django.http import Http404, HttpResponseBadRequest
 from rest_framework import (decorators, filters, generics, pagination, response, routers,
                             serializers, status, views, viewsets)
 import django_filters
-from ctrack.models import Account, Category, Transaction, PeriodDefinition
+from ctrack.models import Account, Category, Transaction, PeriodDefinition, RecurringPayment, Bill
 
 # Serializers define the API representation.
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
@@ -29,6 +29,21 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
+
+
+class RecurringPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecurringPayment
+        fields = ('url', 'id', 'name', 'is_income')
+
+
+class BillSerializer(serializers.ModelSerializer):
+    is_paid = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Bill
+        fields = ('url', 'id', 'description', 'due_date', 'due_amount', 'fixed_amount', 'var_amount',
+                  'document', 'series', 'paying_transactions', 'is_paid')
 
 
 class SplitTransSerializer(serializers.Serializer):
@@ -53,7 +68,7 @@ class SummarySerializer(serializers.Serializer):
     category = serializers.IntegerField()
     category_name = serializers.CharField(max_length=40, source='category__name')
     total = serializers.DecimalField(max_digits=20, decimal_places=2)
-    
+
 
 # ViewSets define the view behavior.
 class AccountViewSet(viewsets.ModelViewSet):
@@ -137,17 +152,29 @@ class SuggestCategories(generics.ListAPIView):
 
 class PeriodDefinitionView(views.APIView):
     queryset = PeriodDefinition.objects.all()
-    
+
     def get(self, formats=None):
         data = sum((period.option_specifiers
                     for period in PeriodDefinition.objects.all()), [])
         return response.Response(data)
 
 
+class RecurringPaymentViewSet(viewsets.ModelViewSet):
+    queryset = RecurringPayment.objects.all().order_by('name')
+    serializer_class = RecurringPaymentSerializer
+
+
+class BillViewSet(viewsets.ModelViewSet):
+    queryset = Bill.objects.all().order_by('-due_date')
+    serializer_class = BillSerializer
+
+
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)
 router.register(r'categories', CategoryViewSet)
 router.register(r'transactions', TransactionViewSet)
+router.register(r'payments', RecurringPaymentViewSet)
+router.register(r'bills', BillViewSet)
 urls = [
     url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
     url(r'^periods/$', PeriodDefinitionView.as_view()),
