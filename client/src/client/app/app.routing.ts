@@ -1,6 +1,8 @@
 import { ModuleWithProviders }  from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
+import { LoginComponent } from './login.component';
+import { LoggedInGuard } from './logged-in.guard';
 import { TransactionComponent } from './transaction.component';
 import { TransactionDetailComponent } from './transaction-detail.component';
 import { DashboardComponent } from './dashboard.component';
@@ -9,15 +11,22 @@ import { AccountComponent } from './accounts.component';
 const appRoutes: Routes = [
     {
         path: 'transactions',
-        component: TransactionComponent
+        component: TransactionComponent,
+        canActivate: [LoggedInGuard]
     },
     {
         path: 'dashboard',
-        component: DashboardComponent
+        component: DashboardComponent,
+        canActivate: [LoggedInGuard]
     },
     {
         path: 'accounts',
-        component: AccountComponent
+        component: AccountComponent,
+        canActivate: [LoggedInGuard]
+    },
+    {
+        path: 'login',
+        component: LoginComponent
     },
     {
         path: '',

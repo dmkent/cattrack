@@ -20,17 +20,46 @@ function tpFromResponse(response: Response): TransactionPage {
 
 @Injectable()
 export class TransactionService {
+    private loginUrl = 'http://localhost:8000/api-token-auth/';
     private transUrl = 'http://localhost:8000/api/transactions';
-    private catUrl = 'http://localhost:8000/api/categories';
+    private catUrl = 'http://localhost:8000/api/categories/';
     private accountUrl = 'http://localhost:8000/api/accounts';
     private periodUrl = 'http://localhost:8000/api/periods/';
-    private authHeader = 'Basic ' + btoa('dkent:thisisapassword');
+    private authHeader: string = null;
     private headers = new Headers({
         'Content-Type': 'application/json',
-        'Authorization': this.authHeader,
     });
+    private jwtToken: string;
 
-    constructor(private http: Http) { }
+    constructor(private http: Http) {
+        let token = localStorage.getItem('auth_token');
+        if (token) {
+            this.authHeader = 'JWT ' + token;
+            this.headers.set('Authorization', this.authHeader);
+        }
+    }
+
+    login(details: any) {
+        let headers = new Headers({
+            'Content-Type': 'application/json',
+        });
+        let args = new URLSearchParams();
+        args.set('format', 'json');
+        return this.http.post(this.loginUrl,
+                              JSON.stringify(details), {headers: headers, search: args})
+                   .toPromise()
+                   .then(res => {
+                       let token = res.json().token;
+                       localStorage.setItem('auth_token', token);
+                       this.authHeader = 'JWT ' + token;
+                       this.headers.set('Authorization', this.authHeader);
+                   })
+                   .catch(this.handleError);
+    }
+
+    isLoggedIn() {
+        return this.authHeader !== null;
+    }
 
     getTransactions(page: number, page_size: number = 10,
                     category: Category = null,
@@ -54,7 +83,7 @@ export class TransactionService {
         if (to_date !== null) {
             args.set('to_date', to_date.toString());
         }
-        return this.http.get(this.transUrl + '/', {search: args})
+        return this.http.get(this.transUrl + '/', {search: args, headers: this.headers})
                    .toPromise()
                    .then(tpFromResponse)
                    .catch(this.handleError);
@@ -79,7 +108,7 @@ export class TransactionService {
         if (to_date !== null) {
             args.set('to_date', to_date.toString());
         }
-        return this.http.get(this.transUrl + '/summary/', {search: args})
+        return this.http.get(this.transUrl + '/summary/', {search: args, headers: this.headers})
                    .toPromise()
                    .then(res => res.json() as CategorySummary[])
                    .catch(this.handleError);
@@ -87,7 +116,7 @@ export class TransactionService {
 
 
     getTransaction(id: number): Promise<Transaction> {
-        return this.http.get(this.transUrl + '/' + id)
+        return this.http.get(this.transUrl + '/' + id, {headers: this.headers})
                    .toPromise()
                    .then(response => response.json())
                    .catch(this.handleError);
@@ -129,7 +158,7 @@ export class TransactionService {
 
     categorySuggestions(transaction: Transaction): Promise<Category[]> {
         const url = `${this.transUrl}/${transaction.id}/suggest`;
-        return this.http.get(url).toPromise()
+        return this.http.get(url, {headers: this.headers}).toPromise()
                .then(res => res.json() as Category[])
                .catch(this.handleError);
     }
@@ -158,7 +187,7 @@ export class TransactionService {
     getCategories(): Promise<Category[]> {
         let args = new URLSearchParams();
         args.set('format', 'json');
-        return this.http.get(this.catUrl, {search: args})
+        return this.http.get(this.catUrl, {search: args, headers: this.headers})
                    .toPromise()
                    .then(res => res.json())
                    .catch(this.handleError);
@@ -167,7 +196,7 @@ export class TransactionService {
     getAccounts(): Promise<Account[]> {
         let args = new URLSearchParams();
         args.set('format', 'json');
-        return this.http.get(this.accountUrl, {search: args})
+        return this.http.get(this.accountUrl, {search: args, headers: this.headers})
                    .toPromise()
                    .then(res => res.json())
                    .catch(this.handleError);
@@ -176,7 +205,7 @@ export class TransactionService {
     getPeriods(): Promise<Period[]> {
         let args = new URLSearchParams();
         args.set('format', 'json');
-        return this.http.get(this.periodUrl, {search: args})
+        return this.http.get(this.periodUrl, {search: args, headers: this.headers})
                    .toPromise()
                    .then(res => res.json() as Period[])
                    .catch(this.handleError);

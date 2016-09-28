@@ -10,6 +10,8 @@ import { NgFileSelectDirective } from 'ng2-uploader';
 
 import { routing } from './app.routing';
 import { AppComponent } from './app.component';
+import { LoginComponent } from './login.component';
+import { LoggedInGuard } from './logged-in.guard';
 import { TransactionDetailComponent } from './transaction-detail.component';
 import { TransactionComponent } from './transaction.component';
 import { TransactionService } from './transaction.service';
@@ -31,6 +33,7 @@ import { AccountDetailComponent } from './account-detail.component';
   ],
   declarations: [
     AppComponent,
+    LoginComponent,
     TransactionDetailComponent,
     TransactionComponent,
     DashboardComponent,
@@ -40,7 +43,8 @@ import { AccountDetailComponent } from './account-detail.component';
     NgFileSelectDirective
   ],
   providers: [
-    TransactionService
+    TransactionService,
+    LoggedInGuard
   ],
   bootstrap:    [ AppComponent ]
 })
