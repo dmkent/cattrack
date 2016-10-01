@@ -26,6 +26,10 @@
   pk: 4
   fields:
     name: Internet
+- model: ctrack.Category
+  pk: 5
+  fields:
+    name: Energy
 - model: ctrack.Transaction
   pk: 1
   fields:
@@ -90,6 +94,14 @@
     amount: 300.00
     category: 1
     account: 3
+- model: ctrack.Transaction
+  pk: 9
+  fields:
+    description: Pay bill
+    when: 2016-01-22
+    amount: -124.23
+    category: 5
+    account: 1
 - model: ctrack.PeriodDefinition
   pk: 1
   fields:
@@ -105,3 +117,21 @@
   fields:
     label: Work week
     frequency: W-THU
+- model: ctrack.RecurringPayment
+  pk: 1
+  fields:
+    name: Electricity
+- model: ctrack.RecurringPayment
+  pk: 2
+  fields:
+    name: Salary
+    is_income: true
+- model: ctrack.Bill
+  pk: 1
+  fields:
+    description: Power bill
+    due_date: 2016-02-01
+    due_amount: 124.23
+    series: 1
+    paying_transactions: [9]
+    document: /static/test.txt

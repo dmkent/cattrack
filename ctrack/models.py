@@ -190,7 +190,7 @@ class Bill(models.Model):
 
     @property
     def is_paid(self):
-        return self.paying_transactions.aggregate(total=models.Sum('amount'))[0]['total'] == self.due_amount
+        return self.paying_transactions.aggregate(total=models.Sum('amount'))['total'] == -self.due_amount
 
     def __str__(self):
         return "{} bill of ${:.2f} due on {}".format(
@@ -198,6 +198,9 @@ class Bill(models.Model):
             self.due_amount,
             self.due_date,
         )
+
+    class Meta:
+        ordering = ['-due_date',]
 
 
 class RecurringPayment(models.Model):

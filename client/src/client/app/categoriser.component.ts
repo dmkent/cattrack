@@ -32,8 +32,8 @@ export class CategoriserComponent implements OnInit {
     @Output()
     onSave: EventEmitter<any> = new EventEmitter();
 
-    categories: Category[];
-    suggestions: Category[];
+    categories: Category[] = [];
+    suggestions: Category[] = [];
 
     public catForm: FormGroup;
 

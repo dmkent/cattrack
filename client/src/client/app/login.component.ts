@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { TransactionService } from './transaction.service';
 
@@ -16,13 +17,16 @@ export class LoginComponent implements OnInit {
     details: LoginDetails;
 
     constructor(
-        private transactionService: TransactionService) {}
+        private transactionService: TransactionService,
+        private router: Router) {}
 
     ngOnInit(): void {
+        this.transactionService.logout();
         this.details = new LoginDetails();
     }
 
     submit() {
-        this.transactionService.login(this.details);
+        this.transactionService.login(this.details)
+            .then(res => this.router.navigate(['']));
     }
 }

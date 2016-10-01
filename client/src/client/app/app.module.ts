@@ -5,6 +5,7 @@ import { HttpModule } from '@angular/http';
 import { Ng2BootstrapModule } from 'ng2-bootstrap/ng2-bootstrap';
 import { Ng2PaginationModule } from 'ng2-pagination';
 import 'jquery';
+import 'bootstrap';
 import { ModalModule } from 'ng2-bootstrap/ng2-bootstrap';
 import { NgFileSelectDirective } from 'ng2-uploader';
 

@@ -41,7 +41,8 @@ export class ProjectConfig extends SeedConfig {
       'ng2-pagination': 'node_modules/ng2-pagination',
       'ng2-bootstrap': 'node_modules/ng2-bootstrap',
       'jquery': 'node_modules/jquery',
-      'moment': 'node_modules/moment'
+      'moment': 'node_modules/moment',
+      'bootstrap': 'node_modules/bootstrap'
     });
 
     this.mergeObject(this.SYSTEM_CONFIG_DEV.packages, {
@@ -56,6 +57,9 @@ export class ProjectConfig extends SeedConfig {
       },
       'ng2-pagination': {
         main: './index.js'
+      },
+      'bootstrap': {
+        main: './dist/js/bootstrap.min.js'
       },
     });
 

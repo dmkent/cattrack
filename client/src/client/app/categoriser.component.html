@@ -78,7 +78,7 @@
                   </div>
                 </fieldset> <!-- div for -->
                 <button type="button" class="btn btn-default btn-sm" (click)="addSplitCat(); $event.stopPropagation()">Add split</button>
-                <p [class.hidden]="catForm.valid || !catForm.errors.amountTotalIncorrect"
+                <p [class.hidden]="catForm.hasError || !catForm.errors.amountTotalIncorrect"
                    class="col-sm-12 text-danger">
                   The sum of the amounts must equal the transaction total.
                 </p>

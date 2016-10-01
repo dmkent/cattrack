@@ -6,3 +6,4 @@ typings
 npm-debug.log
 client/app/*.js
 client/app/*.js.map
+client.orig

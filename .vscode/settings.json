@@ -8,5 +8,6 @@
         "client/app/*.js": true,
         "client/app/*.js.map": true,
         "**/__pycache__": true
-    }
+    },
+    "typescript.tsdk": "client/node_modules/typescript/lib/"
 }

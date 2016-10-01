@@ -31,12 +31,6 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
 
 
-class RecurringPaymentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RecurringPayment
-        fields = ('url', 'id', 'name', 'is_income')
-
-
 class BillSerializer(serializers.ModelSerializer):
     is_paid = serializers.ReadOnlyField()
 
@@ -44,6 +38,14 @@ class BillSerializer(serializers.ModelSerializer):
         model = Bill
         fields = ('url', 'id', 'description', 'due_date', 'due_amount', 'fixed_amount', 'var_amount',
                   'document', 'series', 'paying_transactions', 'is_paid')
+
+
+class RecurringPaymentSerializer(serializers.ModelSerializer):
+    bills = BillSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = RecurringPayment
+        fields = ('url', 'id', 'name', 'is_income', 'bills')
 
 
 class SplitTransSerializer(serializers.Serializer):
@@ -167,6 +169,8 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
 class BillViewSet(viewsets.ModelViewSet):
     queryset = Bill.objects.all().order_by('-due_date')
     serializer_class = BillSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    filter_fields = ('due_date', 'series')
 
 
 router = routers.DefaultRouter()
