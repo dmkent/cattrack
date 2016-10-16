@@ -1,9 +1,4 @@
 __pycache__
 db.sqlite3
 
-node_modules
-typings
-npm-debug.log
-client/app/*.js
-client/app/*.js.map
-client.orig
+categoriser.pkl
