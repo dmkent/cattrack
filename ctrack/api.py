@@ -103,9 +103,12 @@ class PageNumberSettablePagination(pagination.PageNumberPagination):
 class DateRangeTransactionFilter(filters.FilterSet):
     from_date = django_filters.DateFilter(name='when', lookup_expr='gte')
     to_date = django_filters.DateFilter(name='when', lookup_expr='lte')
+    has_category = django_filters.BooleanFilter(
+        name='category', exclude=True, lookup_expr='isnull',
+    )
     class Meta:
         model = Transaction
-        fields = ('from_date', 'to_date', 'account', 'category',)
+        fields = ('from_date', 'to_date', 'account', 'category', 'has_category')
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.filter(is_split=False).order_by("-when")
