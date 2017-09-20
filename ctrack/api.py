@@ -111,7 +111,7 @@ class DateRangeTransactionFilter(filters.FilterSet):
         fields = ('from_date', 'to_date', 'account', 'category', 'has_category')
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = Transaction.objects.filter(is_split=False).order_by("-when")
+    queryset = Transaction.objects.filter(is_split=False).order_by("-when", "-pk")
     serializer_class = TransactionSerializer
     pagination_class = PageNumberSettablePagination
     filter_class = DateRangeTransactionFilter
