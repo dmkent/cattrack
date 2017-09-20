@@ -3,6 +3,7 @@
 from datetime import date
 
 from django.db.models import Sum, Count
+from django.db.models.functions import TruncMonth
 from django.conf.urls import url, include
 from django.http import Http404, HttpResponseBadRequest
 from rest_framework import (decorators, filters, generics, pagination, response, routers,
@@ -66,6 +67,11 @@ class PeriodDefinitionSerializer(serializers.Serializer):
     offset = serializers.IntegerField()
 
 
+class SeriesSerializer(serializers.Serializer):
+    label = serializers.DateTimeField(source='month')
+    value = serializers.DecimalField(max_digits=20, decimal_places=2)
+
+
 class SummarySerializer(serializers.Serializer):
     category = serializers.IntegerField()
     category_name = serializers.CharField(max_length=40, source='category__name')
@@ -95,6 +101,14 @@ class AccountViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
+
+    @decorators.detail_route(methods=["get"])
+    def series(self, request, pk=None):
+        category = self.get_object()
+        queryset = category.transaction_set
+        result = queryset.annotate(month=TruncMonth('when')).values('month').annotate(value=Sum('amount'))
+        serialised = SeriesSerializer(result, many=True)
+        return response.Response(serialised.data)
 
 class PageNumberSettablePagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
