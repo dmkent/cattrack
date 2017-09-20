@@ -152,7 +152,10 @@ class SuggestCategories(generics.ListAPIView):
             transaction = Transaction.objects.get(pk=self.kwargs['pk'])
         except Transaction.DoesNotExist:
             raise Http404
-        return Category.objects.filter(name__in=transaction.suggest_category())
+        try:
+            return Category.objects.filter(name__in=transaction.suggest_category())
+        except Category.DoesNotExist:
+            raise Http404
 
 
 class PeriodDefinitionView(views.APIView):
