@@ -43,7 +43,15 @@ class Transaction(models.Model):
 
     def suggest_category(self):
         clf = categories.categoriser
-        return [Category.objects.get(name=name) for name in clf.predict(self.description)]
+        result = []
+        for name, score in clf.predict(self.description).iteritems():
+            cat = Category.objects.get(name=name)
+            result.append({
+                'name': cat.name,
+                'id': cat.id,
+                'score': int(round(score * 100.0, 0)),
+            })
+        return result
 
 
 class SplitTransaction(Transaction):

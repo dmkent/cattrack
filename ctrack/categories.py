@@ -78,10 +78,9 @@ class SklearnCategoriser(Categoriser):
         probs = self._clf.predict_proba([text])
         probs = pd.Series(probs[0], index=self._clf.classes_).sort_values()[::-1]
         if probs.iloc[0] > self.THRESH:
-            suggest = [probs.index[0]]
+            suggest = probs.iloc[:1]
         else:
-            cumthresh = probs.ix[probs.cumsum() < self.THRESH]
-            suggest = list(cumthresh.index)
+            suggest = probs.ix[probs.cumsum() < self.THRESH]
         return suggest
 
     def to_bytes(self):

@@ -24,6 +24,12 @@ class CategorySerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'id', 'name')
 
 
+class ScoredCategorySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField(max_length=50)
+    score = serializers.IntegerField()
+
+
 class TransactionSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
 
@@ -159,7 +165,7 @@ class SuggestCategories(generics.ListAPIView):
     """
         Suggest categories for a transaction.
     """
-    serializer_class = CategorySerializer
+    serializer_class = ScoredCategorySerializer
 
     def get_queryset(self):
         try:
@@ -167,7 +173,7 @@ class SuggestCategories(generics.ListAPIView):
         except Transaction.DoesNotExist:
             raise Http404
         try:
-            return Category.objects.filter(name__in=transaction.suggest_category())
+            return transaction.suggest_category()
         except Category.DoesNotExist:
             raise Http404
 
