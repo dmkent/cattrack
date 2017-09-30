@@ -74,7 +74,7 @@ class PeriodDefinitionSerializer(serializers.Serializer):
 
 
 class SeriesSerializer(serializers.Serializer):
-    label = serializers.DateTimeField(source='month')
+    label = serializers.DateTimeField(source='dtime')
     value = serializers.DecimalField(max_digits=20, decimal_places=2)
 
 
@@ -104,6 +104,13 @@ class AccountViewSet(viewsets.ModelViewSet):
             return response.Response(serializer.errors,
                                      status=status.HTTP_400_BAD_REQUEST)
 
+    @decorators.detail_route(methods=["get"])
+    def series(self, request, pk=None):
+        series = self.get_object().daily_balance()
+        series.index.name = 'dtime'
+        serialised = SeriesSerializer(series.to_frame('value').reset_index().to_dict(orient='records'), many=True)
+        return response.Response(serialised.data)
+
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
@@ -112,7 +119,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def series(self, request, pk=None):
         category = self.get_object()
         queryset = category.transaction_set
-        result = queryset.annotate(month=TruncMonth('when')).values('month').annotate(value=Sum('amount'))
+        result = (queryset
+            .annotate(dtime=TruncMonth('when'))
+            .values('dtime')
+            .annotate(value=Sum('amount'))
+        )
         serialised = SeriesSerializer(result, many=True)
         return response.Response(serialised.data)
 
