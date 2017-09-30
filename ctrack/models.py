@@ -124,8 +124,13 @@ class Account(models.Model):
             .filter(when__gt=start)
             .order_by('when')
         )
-        series = pd.Series({obj.when: float(obj.amount) for obj in transactions})
-        series.index = pd.DatetimeIndex(series.index)
+        if len(transactions) <= 0:
+            return pd.Series()
+        series = pd.DataFrame({obj.id: {
+            'when': obj.when,
+            'amount': float(obj.amount)
+        } for obj in transactions}).T
+        series = series.groupby('when').sum()['amount']
         series = series.cumsum() + init_balance
         series = series.resample('D').ffill()
         return series
@@ -172,7 +177,8 @@ class PeriodDefinition(models.Model):
     def index(self):
         if self._index is None:
             offset = pd.datetools.to_offset(self.frequency)
-            end_date = date.today() + offset
+            #end_date = date.today() + offset
+            end_date = date(2016, 7, 18) + offset
             start_date = end_date - relativedelta(years=1) - offset
 
             if self.anchor_date is None:
