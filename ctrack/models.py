@@ -110,6 +110,22 @@ class Category(models.Model):
 
 
 class PeriodDefinition(models.Model):
+    """
+        A flexible set of time periods for summarising transactions.
+
+        Each object represents a series of periods, at the moment only the current
+        and previous periods is used in the interface.
+
+        A set of periods is defined using a pandas DateOffset string. i.e. something
+        that can be passed to ``pd.to_offset``. For example, A, MS. See
+        http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
+        for more.
+
+        The ``anchor_date`` allows a period series to start on a particular date. This
+        is useful for something like a fortnightly pay-period where we need to determine
+        which of two potential days the series should start. The ``anchor_date`` must be
+        at least 12 months in the past.
+    """
     label = models.CharField(max_length=20)
     anchor_date = models.DateField(null=True, blank=True)
     frequency = models.CharField(max_length=10)
