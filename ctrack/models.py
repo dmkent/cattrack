@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from dateutil.relativedelta import relativedelta
 from django.db import models
@@ -59,6 +59,16 @@ class SplitTransaction(Transaction):
                                              related_name="split_transactions")
 
 
+class BalancePoint(models.Model):
+    """An account balance at a point in time."""
+    ref_date = models.DateField()
+    balance = models.DecimalField(decimal_places=2, max_digits=8)
+    account = models.ForeignKey("Account", related_name="balance_points")
+
+    class Meta:
+        get_latest_by = "ref_date"
+
+
 class Account(models.Model):
     """A logical account."""
     name = models.TextField(max_length=100)
@@ -99,6 +109,26 @@ class Account(models.Model):
                 if len(cats) == 1:
                     trans.category = cats[0]
                     trans.save()
+
+    def daily_balance(self):
+        """Get series of daily balance."""
+        try:
+            balance_point = self.balance_points.latest()
+            init_balance = float(balance_point.balance)
+            start = pytz.utc.localize(datetime.combine(balance_point.ref_date, time(0, 0)))
+        except BalancePoint.DoesNotExist:
+            init_balance = 0.0
+            start = pytz.utc.localize(datetime(1990, 1, 1))
+        transactions = (
+            self.transaction_set
+            .filter(when__gt=start)
+            .order_by('when')
+        )
+        series = pd.Series({obj.when: float(obj.amount) for obj in transactions})
+        series.index = pd.DatetimeIndex(series.index)
+        series = series.cumsum() + init_balance
+        series = series.resample('D').ffill()
+        return series
 
 
 class Category(models.Model):
