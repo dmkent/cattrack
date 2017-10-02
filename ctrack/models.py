@@ -127,7 +127,7 @@ class Account(models.Model):
             start = pytz.utc.localize(datetime(1990, 1, 1))
         transactions = (
             self.transaction_set
-            .filter(when__gt=start)
+            .filter(when__gt=start, is_split=False)
             .order_by('when')
         )
         if len(transactions) <= 0:
