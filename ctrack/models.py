@@ -68,6 +68,12 @@ class BalancePoint(models.Model):
     class Meta:
         get_latest_by = "ref_date"
 
+    def __str__(self):
+        return "{} == ${:.02f} on {}".format(
+            self.account,
+            self.balance,
+            self.ref_date
+        )
 
 class Account(models.Model):
     """A logical account."""
