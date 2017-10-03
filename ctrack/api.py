@@ -15,7 +15,7 @@ from ctrack.models import Account, Category, Transaction, PeriodDefinition, Recu
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Account
-        fields = ('url', 'id', 'name')
+        fields = ('url', 'id', 'name', 'balance')
 
 
 class CategorySerializer(serializers.HyperlinkedModelSerializer):

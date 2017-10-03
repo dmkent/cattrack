@@ -141,6 +141,14 @@ class Account(models.Model):
         series = series.resample('D').ffill()
         return series
 
+    @property
+    def balance(self):
+        """Get the latest balance for the account."""
+        try:
+            return self.daily_balance().iloc[-1]
+        except IndexError:
+            return None
+
 
 class Category(models.Model):
     """A transaction category."""
