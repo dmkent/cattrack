@@ -113,8 +113,12 @@ class Account(models.Model):
             if allow_categorisation:
                 cats = trans.suggest_category()
                 if len(cats) == 1:
-                    trans.category = cats[0]
-                    trans.save()
+                    try:
+                        trans.category = Category.objects.get(pk=cats[0].id)
+                        trans.save()
+                    except Category.DoesNotExist:
+                        pass
+
 
     def daily_balance(self):
         """Get series of daily balance."""
