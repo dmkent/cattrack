@@ -1,6 +1,7 @@
 """ctrack REST API
 """
 from datetime import date
+import logging
 
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
@@ -10,6 +11,10 @@ from rest_framework import (decorators, filters, generics, pagination, response,
                             serializers, status, views, viewsets)
 import django_filters
 from ctrack.models import Account, Category, Transaction, PeriodDefinition, RecurringPayment, Bill
+
+
+logger = logging.getLogger(__name__)
+
 
 # Serializers define the API representation.
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
@@ -97,6 +102,7 @@ class AccountViewSet(viewsets.ModelViewSet):
             try:
                 account.load_ofx(serializer.validated_data['data_file'])
             except (ValueError, IOError, TypeError):
+                logger.exception("OFX parse error")
                 return response.Response("Unable to load file. Bad format?",
                                          status=status.HTTP_400_BAD_REQUEST)
             return response.Response({'status': 'loaded'})
