@@ -114,7 +114,7 @@ class Account(models.Model):
                 cats = trans.suggest_category()
                 if len(cats) == 1:
                     try:
-                        trans.category = Category.objects.get(pk=cats[0].id)
+                        trans.category = Category.objects.get(pk=cats[0]['id'])
                         trans.save()
                     except Category.DoesNotExist:
                         pass
