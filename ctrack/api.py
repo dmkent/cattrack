@@ -208,6 +208,22 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
     queryset = RecurringPayment.objects.all().order_by('name')
     serializer_class = RecurringPaymentSerializer
 
+    @decorators.detail_route(methods=["post"])
+    def loadpdf(self, request, pk=None):
+        payments = self.get_object()
+        serializer = LoadDataSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                payments.add_bill_from_file(serializer.validated_data['data_file'])
+            except (ValueError, IOError, TypeError):
+                logger.exception("Unable to load PDF")
+                return response.Response("Unable to load file. Bad format?",
+                                         status=status.HTTP_400_BAD_REQUEST)
+            return response.Response({'status': 'loaded'})
+        else:
+            return response.Response(serializer.errors,
+                                     status=status.HTTP_400_BAD_REQUEST)
+
 
 class BillViewSet(viewsets.ModelViewSet):
     queryset = Bill.objects.all().order_by('-due_date')

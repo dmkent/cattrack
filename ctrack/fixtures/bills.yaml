@@ -1,0 +1,109 @@
+- model: ctrack.RecurringPayment
+  pk: 0
+  fields:
+    name: Water
+- model: ctrack.Bill
+  pk: 0
+  fields:
+    description: Water
+    due_date: 2014-09-06
+    due_amount: 234.67
+    var_amount: 164.13
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20140906.pdf
+- model: ctrack.Bill
+  pk: 2
+  fields:
+    description: Water
+    due_date: 2014-06-14
+    due_amount: 520.37
+    var_amount: 275.04
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20140614.pdf
+- model: ctrack.Bill
+  pk: 3
+  fields:
+    description: Water
+    due_date: 2014-03-14
+    due_amount: 593.88
+    var_amount: 284.27
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20140314.pdf
+- model: ctrack.Bill
+  pk: 4
+  fields:
+    description: Water
+    due_date: 2013-12-08
+    due_amount: 295.59
+    var_amount: 25.57
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20131208.pdf
+- model: ctrack.Bill
+  pk: 5
+  fields:
+    description: Water
+    due_date: 2013-09-05
+    due_amount: 295.17
+    var_amount: 102.78
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20130905.pdf
+- model: ctrack.Bill
+  pk: 6
+  fields:
+    description: Water
+    due_date: 2013-06-07
+    due_amount: 591.11
+    var_amount: 285.53
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20130607.pdf
+- model: ctrack.Bill
+  pk: 7
+  fields:
+    description: Water
+    due_date: 2013-03-09
+    due_amount: 425.39
+    var_amount: 243.83
+    series: 0
+    paying_transactions: []
+    document: /static/bills/Water_20130309.pdf
+- model: ctrack.BillPdfScraperConfig
+  pk: 0
+  fields:
+    field: amount
+    label_pattern: '(invoice number)'
+    value_pattern: '\$.*?([0-9\.-]+)'
+    processor: float
+- model: ctrack.BillPdfScraperConfig
+  pk: 1
+  fields:
+    field: amount
+    label_pattern: \d\d/\d\d/\d\d\d\d\n\$[\d\.]+
+    value_pattern: \$.*?([0-9\.-]+)
+    processor: float
+- model: ctrack.BillPdfScraperConfig
+  pk: 2
+  fields:
+    field: amount
+    label_pattern: ((total\s+)?amount\sdue)|(new charges)
+    value_pattern: \$.*?([0-9\.-]+)
+    processor: float
+- model: ctrack.BillPdfScraperConfig
+  pk: 3
+  fields:
+    field: due_date
+    label_pattern: due( date)?
+    value_pattern: (\d\d [a-z]+ \d\d(?:\d\d)?)
+    processor: dateutil.parser.parse
+- model: ctrack.BillPdfScraperConfig
+  pk: 4
+  fields:
+    field: due_date
+    label_pattern: \d\d/\d\d/\d\d\d\d\n\$[\d\.]+
+    value_pattern: (\d\d/\d\d/\d\d\d\d)
+    processor: dateutil.parser.parse

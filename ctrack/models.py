@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+import importlib
 
 from dateutil.relativedelta import relativedelta
 from django.db import models
@@ -263,7 +264,7 @@ class Bill(models.Model):
     var_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     paying_transactions = models.ManyToManyField("Transaction",
                                                  related_name="pays_bill")
-    document = models.FileField(null=True)
+    document = models.FileField(null=True, upload_to='uploaded/bills')
     series = models.ForeignKey('RecurringPayment', related_name="bills")
 
     @property
@@ -310,3 +311,58 @@ class RecurringPayment(models.Model):
             return "Income: {}".format(self.name)
         else:
             return "Bill: {}".format(self.name)
+
+    def add_bill_from_file(self, fobj):
+        """
+            Try and add a new bill to this series by examining PDF file.
+        """
+        from ctrack.pdf_item_reader import extract_data
+        data_from_file = extract_data(fobj, BillPdfScraperConfig.fetch_all_config())
+        try:
+            new_bill = Bill(
+                description='test',
+                due_amount=data_from_file['amount'],
+                due_date=data_from_file['due_date'],
+                series=self,
+            )
+        except KeyError as thrown:
+            raise RuntimeError("Unable to get %s from PDF file." % thrown)
+        # That went well. Add the file to the new object...
+        #new_path = Path(settings.MEDIA_ROOT) / 'uploaded' / 'bills'
+        #new_path /= Path(fpath).name
+        #new_path.parent.mkdir(parents=True, exist_ok=True)
+        #shutil.copy(fpath, str(new_path))
+        new_bill.document = fobj
+        new_bill.save()
+
+
+class BillPdfScraperConfig(models.Model):
+    """Represents configuration needed to scape data from bill PDF."""
+    field = models.CharField(max_length=20)
+    label_pattern = models.CharField(max_length=50)
+    value_pattern = models.CharField(max_length=50)
+    processor = models.CharField(max_length=200)
+
+    @property
+    def processor_func(self):
+        """Map processor to function."""
+        try:
+            import builtins
+            return getattr(builtins, self.processor)
+        except AttributeError:
+            pass
+        try:
+            package, name = self.processor.rsplit('.', 1)
+            return getattr(importlib.import_module(package), name)
+        except (ValueError, ImportError, AttributeError):
+            pass
+
+    @property
+    def as_config(self):
+        """Get configuration tuple for ``pdf_item_reader``."""
+        return (self.field, self.label_pattern, self.value_pattern, self.processor_func)
+
+    @classmethod
+    def fetch_all_config(cls):
+        """Get list of configuration objects."""
+        return [instance.as_config for instance in cls.objects.all()]
