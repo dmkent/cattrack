@@ -57,7 +57,7 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RecurringPayment
-        fields = ('url', 'id', 'name', 'is_income', 'bills')
+        fields = ('url', 'id', 'name', 'is_income', 'bills', 'next_due_date')
 
 
 class SplitTransSerializer(serializers.Serializer):

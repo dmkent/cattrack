@@ -257,6 +257,7 @@ class Bill(models.Model):
     """A single bill to be paid."""
     description = models.CharField(max_length=100)
     due_date = models.DateField()
+    issued_date = models.DateField(null=True, blank=True)
     due_amount = models.DecimalField(max_digits=8, decimal_places=2)
     fixed_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     var_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
@@ -287,44 +288,22 @@ class RecurringPayment(models.Model):
 
     def bills_as_series(self):
         """Convert related Bill objects to time series."""
-        arr = np.array(self.bills.values_list('due_date', 'due_amount'))
-        return pd.Series(arr[:, 1], index=arr[:, 0])
+        arr = np.array(self.bills.order_by('due_date').values_list('due_date', 'due_amount'))
+        if len(arr) == 0:
+            return pd.Series()
+        return pd.Series(arr[:, 1], index=pd.DatetimeIndex(arr[:, 0])).astype(float)
 
     def next_due_date(self):
         """Calculate the due date of the next bill."""
         data = self.bills_as_series()
-        days_between = [td.total_seconds() / 86400 for td in data.index.values[1:] - data.index.values[:-1]]
+        if len(data) == 0:
+            return None
+        days_between = data.index.to_series().diff().dt.days.values[1:]
         mean_days = np.mean(days_between)
+        if not np.isfinite(mean_days):
+            return None
         last_due = data.index[-1]
-        if mean_days < 10:
-            freq = 'W'
-            delta = timedelta(days=last_due.dayofweek)
-        elif mean_days < 15:
-            freq = '2W'
-            delta = timedelta(days=last_due.dayofweek)
-        elif mean_days < 33:
-            freq = 'MS'
-            delta = timedelta(days=last_due.day - 1)
-        elif mean_days < 65:
-            freq = '2MS'
-            delta = timedelta(days=last_due.day - 1)
-        elif mean_days < 100:
-            freq = 'QS'
-            delta = timedelta(days=last_due.day - 1)
-        elif mean_days < 190:
-            freq = '6MS'
-            delta = timedelta(days=last_due.day - 1)
-        elif mean_days < 367:
-            freq = 'AS'
-            delta = timedelta(days=last_due.dayofyear)
-        else:
-            freq = None
-            delta = 0
-
-        if freq is not None:
-            offset = pd.datetools.to_offset(freq)
-            return data.index[-1] + offset + delta
-        return
+        return last_due + timedelta(days=mean_days)
 
     def __str__(self):
         if self.is_income:
