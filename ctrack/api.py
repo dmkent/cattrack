@@ -3,6 +3,8 @@
 from datetime import date
 import logging
 
+from dateutil.parser import parse as parse_date
+
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
 from django.conf.urls import url, include
@@ -33,6 +35,12 @@ class ScoredCategorySerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField(max_length=50)
     score = serializers.IntegerField()
+
+
+class CategorySummarySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField(max_length=50)
+    value = serializers.FloatField()
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -232,6 +240,30 @@ class BillViewSet(viewsets.ModelViewSet):
     filter_fields = ('due_date', 'series')
 
 
+class CategorySummary(generics.ListAPIView):
+    """
+        Summaries for all categories.
+    """
+    serializer_class = CategorySummarySerializer
+
+    def get_queryset(self):
+        from_date = parse_date(self.kwargs["from"])
+        to_date = parse_date(self.kwargs["to"])
+        nmonths = (to_date - from_date).total_seconds() / 86400 / 30
+        filters = {
+            "when__gte": from_date,
+            "when__lte": to_date,
+        }
+        result = []
+        for category in Category.objects.all():
+            transactions = category.transaction_set.filter(**filters)
+            if len(transactions) == 0:
+                value = 0.0
+            else:
+                value = float(transactions.aggregate(sum=Sum("amount"))["sum"]) / nmonths
+            result.append({"id": category.id, "name": category.name, "value": value})
+        return result
+
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)
 router.register(r'categories', CategoryViewSet)
@@ -240,6 +272,7 @@ router.register(r'payments', RecurringPaymentViewSet)
 router.register(r'bills', BillViewSet)
 urls = [
     url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
+    url(r'^categories/summary/(?P<from>[0-9]+)/(?P<to>[0-9]+)$', CategorySummary.as_view()),
     url(r'^periods/$', PeriodDefinitionView.as_view()),
     url(r'^', include(router.urls)),
 ]
