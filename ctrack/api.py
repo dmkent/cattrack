@@ -257,7 +257,6 @@ class CategorySummary(generics.ListAPIView):
     def get_queryset(self):
         from_date = parse_date(self.kwargs["from"])
         to_date = parse_date(self.kwargs["to"])
-        nmonths = (to_date - from_date).total_seconds() / 86400 / 30
         filters = {
             "when__gte": from_date,
             "when__lte": to_date,
@@ -267,7 +266,7 @@ class CategorySummary(generics.ListAPIView):
             transactions = category.transaction_set.filter(**filters)
             value = 0.0
             if transactions:
-                value = float(transactions.aggregate(sum=Sum("amount"))["sum"]) / nmonths
+                value = float(transactions.aggregate(sum=Sum("amount"))["sum"])
 
             budget_entry = category.budgetentry_set.for_period(to_date)
             budget = None
