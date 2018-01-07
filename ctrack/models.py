@@ -389,15 +389,21 @@ class BudgetEntryManager(models.Manager):
         """Filter the budget entries for at given date."""
         return self.filter(valid_from__lte=effective_date, valid_to__gte=effective_date, **kwargs)
 
+def current_year_start():
+    return date(date.today().year, 1, 1)
+
+def current_year_end():
+    return date(date.today().year, 12, 31)
 
 class BudgetEntry(models.Model):
     """Represents the budget for a category for a calendar month."""
     category = models.ForeignKey(Category)
     amount = models.DecimalField(decimal_places=2, max_digits=8)
-    valid_from = models.DateField()
-    valid_to = models.DateField()
+    valid_from = models.DateField(default=current_year_start)
+    valid_to = models.DateField(default=current_year_end)
 
     objects = BudgetEntryManager()
+
 
     def amount_over_period(self, from_date, to_date):
         """Scale the amount from monthly to whatever number of days."""
@@ -422,4 +428,5 @@ class BudgetEntry(models.Model):
         return "{} : {} : {}".format(self.category, self.pretty_valid(), self.amount)
 
     class Meta:
+        ordering = ["category__name"]
         verbose_name_plural = "budget entries"
