@@ -12,7 +12,8 @@ from django.http import Http404, HttpResponseBadRequest
 from rest_framework import (decorators, filters, generics, pagination, response, routers,
                             serializers, status, views, viewsets)
 import django_filters
-from ctrack.models import Account, Category, Transaction, PeriodDefinition, RecurringPayment, Bill
+from ctrack.models import (Account, Category, Transaction, PeriodDefinition, 
+                           RecurringPayment, Bill, BudgetEntry)
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class CategorySummarySerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField(max_length=50)
     value = serializers.FloatField()
+    budget = serializers.FloatField()
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -95,6 +97,12 @@ class SummarySerializer(serializers.Serializer):
     category = serializers.IntegerField()
     category_name = serializers.CharField(max_length=40, source='category__name')
     total = serializers.DecimalField(max_digits=20, decimal_places=2)
+
+
+class BudgetEntrySerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = BudgetEntry
+        #fields = ('url', 'id', 'name')
 
 
 # ViewSets define the view behavior.
@@ -257,12 +265,27 @@ class CategorySummary(generics.ListAPIView):
         result = []
         for category in Category.objects.all():
             transactions = category.transaction_set.filter(**filters)
-            if len(transactions) == 0:
-                value = 0.0
-            else:
+            value = 0.0
+            if transactions:
                 value = float(transactions.aggregate(sum=Sum("amount"))["sum"]) / nmonths
-            result.append({"id": category.id, "name": category.name, "value": value})
+
+            budget_entry = category.budgetentry_set.for_period(to_date)
+            budget = None
+            if budget_entry:
+                budget = budget_entry[0].amount_over_period(from_date, to_date)
+            result.append({
+                "id": category.id,
+                "name": category.name,
+                "value": value,
+                "budget": budget
+            })
         return result
+
+
+class BudgetEntryViewSet(viewsets.ModelViewSet):
+    queryset = BudgetEntry.objects.all()
+    serializer_class = BudgetEntrySerializer
+
 
 router = routers.DefaultRouter()
 router.register(r'accounts', AccountViewSet)
@@ -270,6 +293,7 @@ router.register(r'categories', CategoryViewSet)
 router.register(r'transactions', TransactionViewSet)
 router.register(r'payments', RecurringPaymentViewSet)
 router.register(r'bills', BillViewSet)
+router.register(r'budget', BudgetEntryViewSet)
 urls = [
     url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
     url(r'^categories/summary/(?P<from>[0-9]+)/(?P<to>[0-9]+)$', CategorySummary.as_view()),

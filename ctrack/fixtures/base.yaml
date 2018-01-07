@@ -30,6 +30,20 @@
   pk: 5
   fields:
     name: Energy
+- model: ctrack.BudgetEntry
+  pk: 1
+  fields:
+    category: 2
+    amount: 20.0
+    valid_from: 2015-12-01
+    valid_to: 2016-03-20
+- model: ctrack.BudgetEntry
+  pk: 2
+  fields:
+    category: 2
+    amount: 25.0
+    valid_from: 2016-04-01
+    valid_to: 2016-12-31
 - model: ctrack.Transaction
   pk: 1
   fields:

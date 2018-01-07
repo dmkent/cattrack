@@ -366,3 +366,27 @@ class BillPdfScraperConfig(models.Model):
     def fetch_all_config(cls):
         """Get list of configuration objects."""
         return [instance.as_config for instance in cls.objects.all()]
+
+
+class BudgetEntryManager(models.Manager):
+    use_for_related = True
+
+    def for_period(self, effective_date, **kwargs):
+        """Filter the budget entries for at given date."""
+        return self.filter(valid_from__lte=effective_date, valid_to__gte=effective_date, **kwargs)
+
+
+class BudgetEntry(models.Model):
+    """Represents the budget for a category for a calendar month."""
+    category = models.ForeignKey(Category)
+    amount = models.DecimalField(decimal_places=2, max_digits=8)
+    valid_from = models.DateField()
+    valid_to = models.DateField()
+
+    objects = BudgetEntryManager()
+
+    def amount_over_period(self, from_date, to_date):
+        """Scale the amount from monthly to whatever number of days."""
+        period_days = (to_date - from_date).total_seconds() / 86400
+        daily_amount = float(self.amount) * 12 / 365.25
+        return daily_amount * period_days
