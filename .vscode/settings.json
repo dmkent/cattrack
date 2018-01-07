@@ -8,5 +8,13 @@
         "client/app/*.js": true,
         "client/app/*.js.map": true,
         "**/__pycache__": true
-    }
+    },
+    "python.pythonPath": "~/anaconda/envs/cats/bin/python",
+    "python.linting.pylintPath": "~/anaconda/envs/cats/bin/pylint",
+    "python.linting.pylintArgs": [
+        "--load-plugins",
+        "pylint_django"
+    ],
+    "python.unitTest.pyTestArgs": [],
+    "python.unitTest.pyTestEnabled": true
 }
