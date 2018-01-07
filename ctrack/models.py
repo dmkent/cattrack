@@ -397,7 +397,7 @@ def current_year_end():
 
 class BudgetEntry(models.Model):
     """Represents the budget for a category for a calendar month."""
-    category = models.ForeignKey(Category)
+    categories = models.ManyToManyField(Category)
     amount = models.DecimalField(decimal_places=2, max_digits=8)
     valid_from = models.DateField(default=current_year_start)
     valid_to = models.DateField(default=current_year_end)
@@ -412,6 +412,7 @@ class BudgetEntry(models.Model):
         return daily_amount * period_days
 
     def pretty_valid(self):
+        """Make a pretty string out of the valid period."""
         duration = (self.valid_to - self.valid_from).total_seconds() / 86400
         if duration >= 367:
             return "{} - {}".format(self.valid_from.year, self.valid_to.year)
@@ -424,9 +425,22 @@ class BudgetEntry(models.Model):
         else:
             return self.valid_from.strftime("%d %b") + " - " + self.valid_to.strftime("%d %b %Y")
 
+    def name_from_categories(self):
+        """Determine a name from the selected categories."""
+        if self.categories.count() == 1:
+            return self.categories.first().name
+
+        names = self.categories.values_list("name", flat=True)
+        name_parts = [name.split(' - ') for name in names]
+        first_same = len(set([parts[0] == name_parts[0][0] for parts in name_parts])) == 1
+        if first_same:
+            return name_parts[0][0]
+
+        return ", ".join(names)
+
     def __str__(self):
-        return "{} : {} : {}".format(self.category, self.pretty_valid(), self.amount)
+        return "{} : {} : {}".format(self.categories.first().name, self.pretty_valid(), self.amount)
 
     class Meta:
-        ordering = ["category__name"]
+        ordering = ["-valid_to"]
         verbose_name_plural = "budget entries"

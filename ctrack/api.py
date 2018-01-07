@@ -262,19 +262,17 @@ class CategorySummary(generics.ListAPIView):
             "when__lte": to_date,
         }
         result = []
-        for category in Category.objects.all():
-            transactions = category.transaction_set.filter(**filters)
+        for budget_entry in BudgetEntry.objects.for_period(to_date):
+            transactions = Transaction.objects.filter(category__in=budget_entry.categories.values_list("pk", flat=True), **filters)
             value = 0.0
             if transactions:
                 value = float(transactions.aggregate(sum=Sum("amount"))["sum"])
 
-            budget_entry = category.budgetentry_set.for_period(to_date)
-            budget = None
-            if budget_entry:
-                budget = budget_entry[0].amount_over_period(from_date, to_date)
+            budget = budget_entry.amount_over_period(from_date, to_date)
+            name = budget_entry.name_from_categories()
             result.append({
-                "id": category.id,
-                "name": category.name,
+                "id": budget_entry.id,
+                "name": name,
                 "value": value,
                 "budget": budget
             })
