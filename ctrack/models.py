@@ -54,6 +54,9 @@ class Transaction(models.Model):
             })
         return result
 
+    class Meta:
+        ordering = ["-when"]
+
 
 class SplitTransaction(Transaction):
     original_transaction = models.ForeignKey("Transaction",
@@ -161,6 +164,14 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def group(self):
+        return self.name.split(' - ')[0]
+    
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "categories"
 
 
 class PeriodDefinition(models.Model):
@@ -367,6 +378,9 @@ class BillPdfScraperConfig(models.Model):
         """Get list of configuration objects."""
         return [instance.as_config for instance in cls.objects.all()]
 
+    def __str__(self):
+        return "{} using {}()".format(self.field, self.processor)
+
 
 class BudgetEntryManager(models.Manager):
     use_for_related = True
@@ -390,3 +404,22 @@ class BudgetEntry(models.Model):
         period_days = (to_date - from_date).total_seconds() / 86400
         daily_amount = float(self.amount) * 12 / 365.25
         return daily_amount * period_days
+
+    def pretty_valid(self):
+        duration = (self.valid_to - self.valid_from).total_seconds() / 86400
+        if duration >= 367:
+            return "{} - {}".format(self.valid_from.year, self.valid_to.year)
+        elif duration > 360:
+            return "{}".format(self.valid_to.year)
+        elif duration > 35:
+            return self.valid_from.strftime("%b") + " - " + self.valid_to.strftime("%b %Y")
+        elif duration > 27:
+            self.valid_to.strftime("%b %Y")
+        else:
+            return self.valid_from.strftime("%d %b") + " - " + self.valid_to.strftime("%d %b %Y")
+
+    def __str__(self):
+        return "{} : {} : {}".format(self.category, self.pretty_valid(), self.amount)
+
+    class Meta:
+        verbose_name_plural = "budget entries"
