@@ -262,7 +262,7 @@ class CategorySummary(generics.ListAPIView):
             "when__lte": to_date,
         }
         result = []
-        for budget_entry in BudgetEntry.objects.for_period(to_date):
+        for budget_entry in BudgetEntry.objects.for_period(to_date).order_by("-amount"):
             transactions = Transaction.objects.filter(category__in=budget_entry.categories.values_list("pk", flat=True), **filters)
             value = 0.0
             if transactions:
