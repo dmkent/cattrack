@@ -397,6 +397,7 @@ def current_year_end():
 
 class BudgetEntry(models.Model):
     """Represents the budget for a category for a calendar month."""
+    name = models.CharField(max_length=20, default=None, null=True)
     categories = models.ManyToManyField(Category)
     amount = models.DecimalField(decimal_places=2, max_digits=8)
     valid_from = models.DateField(default=current_year_start)
@@ -438,8 +439,14 @@ class BudgetEntry(models.Model):
 
         return ", ".join(names)
 
+    @property
+    def pretty_name(self):
+        if self.name:
+            return self.name
+        return self.name_from_categories()
+
     def __str__(self):
-        return "{} : {} : {}".format(self.categories.first().name, self.pretty_valid(), self.amount)
+        return "{} : {} : {}".format(self.pretty_name, self.pretty_valid(), self.amount)
 
     class Meta:
         ordering = ["-valid_to"]

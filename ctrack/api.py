@@ -102,7 +102,7 @@ class SummarySerializer(serializers.Serializer):
 class BudgetEntrySerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = BudgetEntry
-        #fields = ('url', 'id', 'name')
+        fields = ('url', 'id', 'pretty_name', 'amount', 'valid_from', 'valid_to', 'categories')
 
 
 # ViewSets define the view behavior.
@@ -269,10 +269,9 @@ class CategorySummary(generics.ListAPIView):
                 value = float(transactions.aggregate(sum=Sum("amount"))["sum"])
 
             budget = budget_entry.amount_over_period(from_date, to_date)
-            name = budget_entry.name_from_categories()
             result.append({
                 "id": budget_entry.id,
-                "name": name,
+                "name": budget_entry.pretty_name,
                 "value": value,
                 "budget": budget
             })
