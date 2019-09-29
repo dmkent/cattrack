@@ -12,10 +12,10 @@ from ctrack import categories
 class Transaction(models.Model):
     """A single one-way transaction."""
     when = models.DateTimeField()
-    account = models.ForeignKey("Account")
+    account = models.ForeignKey("Account", models.CASCADE)
     amount = models.DecimalField(decimal_places=2, max_digits=8)
     is_split = models.BooleanField(default=False)
-    category = models.ForeignKey("Category", null=True)
+    category = models.ForeignKey("Category", models.CASCADE, null=True)
     description = models.CharField(max_length=500, null=True)
 
     def __str__(self):
@@ -60,6 +60,7 @@ class Transaction(models.Model):
 
 class SplitTransaction(Transaction):
     original_transaction = models.ForeignKey("Transaction",
+                                             models.CASCADE,
                                              related_name="split_transactions")
 
 
@@ -67,7 +68,7 @@ class BalancePoint(models.Model):
     """An account balance at a point in time."""
     ref_date = models.DateField()
     balance = models.DecimalField(decimal_places=2, max_digits=8)
-    account = models.ForeignKey("Account", related_name="balance_points")
+    account = models.ForeignKey("Account", models.CASCADE, related_name="balance_points")
 
     class Meta:
         get_latest_by = "ref_date"
@@ -276,7 +277,7 @@ class Bill(models.Model):
     paying_transactions = models.ManyToManyField("Transaction",
                                                  related_name="pays_bill")
     document = models.FileField(null=True, upload_to='uploaded/bills')
-    series = models.ForeignKey('RecurringPayment', related_name="bills")
+    series = models.ForeignKey('RecurringPayment', models.CASCADE, related_name="bills")
 
     @property
     def is_paid(self):

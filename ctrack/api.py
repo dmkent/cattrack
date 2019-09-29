@@ -9,8 +9,9 @@ from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
 from django.conf.urls import url, include
 from django.http import Http404, HttpResponseBadRequest
-from rest_framework import (decorators, filters, generics, pagination, response, routers,
+from rest_framework import (decorators, generics, pagination, response, routers,
                             serializers, status, views, viewsets)
+from django_filters import rest_framework as filters
 import django_filters
 from ctrack.models import (Account, Category, Transaction, PeriodDefinition, 
                            RecurringPayment, Bill, BudgetEntry)
@@ -110,7 +111,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
-    @decorators.detail_route(methods=["post"])
+    @decorators.action(detail=True, methods=["post"])
     def load(self, request, pk=None):
         account = self.get_object()
         serializer = LoadDataSerializer(data=request.data)
@@ -126,7 +127,7 @@ class AccountViewSet(viewsets.ModelViewSet):
             return response.Response(serializer.errors,
                                      status=status.HTTP_400_BAD_REQUEST)
 
-    @decorators.detail_route(methods=["get"])
+    @decorators.action(detail=True, methods=["get"])
     def series(self, request, pk=None):
         series = self.get_object().daily_balance()
         series.index.name = 'dtime'
@@ -137,7 +138,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
 
-    @decorators.detail_route(methods=["get"])
+    @decorators.action(detail=True, methods=["get"])
     def series(self, request, pk=None):
         category = self.get_object()
         queryset = category.transaction_set
@@ -154,10 +155,10 @@ class PageNumberSettablePagination(pagination.PageNumberPagination):
     page_size = 100
 
 class DateRangeTransactionFilter(filters.FilterSet):
-    from_date = django_filters.DateFilter(name='when', lookup_expr='gte')
-    to_date = django_filters.DateFilter(name='when', lookup_expr='lte')
+    from_date = django_filters.DateFilter(field_name='when', lookup_expr='gte')
+    to_date = django_filters.DateFilter(field_name='when', lookup_expr='lte')
     has_category = django_filters.BooleanFilter(
-        name='category', exclude=True, lookup_expr='isnull',
+        field_name='category', exclude=True, lookup_expr='isnull',
     )
     class Meta:
         model = Transaction
@@ -169,7 +170,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberSettablePagination
     filter_class = DateRangeTransactionFilter
 
-    @decorators.detail_route(methods=["post"])
+    @decorators.action(detail=True, methods=["post"])
     def split(self, request, pk=None):
         transaction = self.get_object()
         args = {}
@@ -186,7 +187,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                                      status=status.HTTP_400_BAD_REQUEST)
         return response.Response({"message": "Success"})
 
-    @decorators.list_route(methods=["get"])
+    @decorators.action(detail=False, methods=["get"])
     def summary(self, request):
         queryset = self.filter_queryset(self.get_queryset().order_by())
         result = queryset.values('category', 'category__name').annotate(total=Sum('amount')).order_by('total')
@@ -224,7 +225,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
     queryset = RecurringPayment.objects.all().order_by('name')
     serializer_class = RecurringPaymentSerializer
 
-    @decorators.detail_route(methods=["post"])
+    @decorators.action(detail=True, methods=["post"])
     def loadpdf(self, request, pk=None):
         payments = self.get_object()
         serializer = LoadDataSerializer(data=request.data)
@@ -244,7 +245,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
 class BillViewSet(viewsets.ModelViewSet):
     queryset = Bill.objects.all().order_by('-due_date')
     serializer_class = BillSerializer
-    filter_backends = (filters.DjangoFilterBackend,)
+    filter_backends = (filters.backends.DjangoFilterBackend,)
     filter_fields = ('due_date', 'series')
 
 
