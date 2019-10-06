@@ -5,7 +5,7 @@ django==1.9.5
 django-cors-headers==1.1.0
 django-crispy-forms==1.6.0
 django-filter==0.14.0
-djangorestframework==3.4.6
+djangorestframework==3.9.1
 djangorestframework-jwt==1.8.0
 gunicorn==19.1.0
 ipython==5.1.0
