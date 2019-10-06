@@ -1,0 +1,5 @@
+*.sqlite3
+*.pkl
+.vscode
+ci-image
+uploaded
