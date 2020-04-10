@@ -207,7 +207,7 @@ class PeriodDefinition(models.Model):
     @property
     def index(self):
         if self._index is None:
-            offset = pd.datetools.to_offset(self.frequency)
+            offset = pd.tseries.frequencies.to_offset(self.frequency)
             end_date = date.today() + offset
             start_date = end_date - relativedelta(years=1) - offset
 

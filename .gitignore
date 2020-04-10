@@ -4,3 +4,5 @@ db.sqlite3
 categoriser.pkl
 bin
 uploaded
+
+compose/data
