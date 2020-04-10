@@ -1,14 +1,16 @@
-FROM python:3
+FROM python:3.7
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-COPY requirements.txt /usr/src/app/
+RUN mkdir /code
+WORKDIR /code
+COPY requirements.txt /code/
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . /usr/src/app
+COPY ./ /code/
 
+EXPOSE 8000
 RUN python ./manage.py migrate && \
     python ./manage.py loaddata ctrack/fixtures/*.yaml
-EXPOSE 8000
 CMD [ "python", "./manage.py", "runserver", "0.0.0.0:8000"]

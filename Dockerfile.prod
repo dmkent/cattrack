@@ -1,14 +1,14 @@
-FROM continuumio/miniconda3
+FROM python:3.7
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-COPY environment.yml ./
-RUN conda env create --force -q -n cats -f environment.yml && echo "source activate cats" > ~/.bashrc
-ENV PATH /opt/conda/envs/cats/bin:$PATH
+RUN mkdir /code
+WORKDIR /code
+COPY requirements.txt /code/
+RUN pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /opt/apps/cattrack
-COPY ./ ./
+COPY ./ /code/
 
 EXPOSE 8000
 CMD gunicorn --env DJANGO_SETTINGS_MODULE=cattrack.settings_prod --workers 3 -b 0.0.0.0:8000 cattrack.wsgi:application
