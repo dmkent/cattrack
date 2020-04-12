@@ -143,3 +143,9 @@ JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=600),
     'JWT_ALLOW_REFRESH': True,
 }
+
+CORS_ORIGIN_ALLOW_ALL = False
+
+CORS_ORIGIN_WHITELIST = (
+    'https://cats.dmkent.net',
+)
