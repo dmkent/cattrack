@@ -17,7 +17,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ.get('APP_SECRET')
 DEBUG = bool(int(os.environ.get('DEBUG', default=0)))
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.cats.dmkent.net']
 
 # Application definition
 
