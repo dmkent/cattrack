@@ -5,4 +5,5 @@ categoriser.pkl
 bin
 uploaded
 
-compose/data
+secret.txt
+secretkey.txt

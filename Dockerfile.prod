@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./ /code/
 
 EXPOSE 8000
-CMD gunicorn --env DJANGO_SETTINGS_MODULE=cattrack.settings_prod --workers 3 -b 0.0.0.0:8000 cattrack.wsgi:application
+ENTRYPOINT [ "/code/docker/entrypoint.sh" ]

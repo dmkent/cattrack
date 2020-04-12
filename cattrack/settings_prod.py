@@ -15,9 +15,12 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SECRET_KEY = os.environ.get('APP_SECRET')
+with open(os.path.join(BASE_DIR, 'secretkey.txt')) as f:
+    SECRET_KEY = f.read().strip()
 DEBUG = bool(int(os.environ.get('DEBUG', default=0)))
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.cats.dmkent.net']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+if 'APP_HOSTNAME' in os.environ:
+    ALLOWED_HOSTS.append(os.environ.get('APP_HOSTNAME'))
 
 # Application definition
 
@@ -145,7 +148,6 @@ JWT_AUTH = {
 }
 
 CORS_ORIGIN_ALLOW_ALL = False
-
 CORS_ORIGIN_WHITELIST = (
-    'https://cats.dmkent.net',
+    os.environ.get('APP_CORS_WHITELIST'),
 )
