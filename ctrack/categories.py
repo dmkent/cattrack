@@ -56,7 +56,7 @@ class SklearnCategoriser(Categoriser):
         text_clf = Pipeline([('vect', CountVectorizer()),
                              ('tfidf', TfidfTransformer()),
                              ('clf', SGDClassifier(loss='log', penalty='l2',
-                                                   alpha=1e-3, n_iter=5,
+                                                   alpha=1e-3,
                                                    random_state=42)),
         ])
 
