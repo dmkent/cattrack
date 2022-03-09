@@ -1,7 +1,7 @@
 - model: auth.user
   pk: 1
   fields:
-    password: pbkdf2_sha256$24000$6rrn5qmdeblz$S83iOXEm9GCLVNsKWgyI9B7ECXuLw0sI5EwQG1rNIrQ=
+    password: pbkdf2_sha256$150000$4ZbubrEshvYF$tCzCAg5qoV+yl81q5zN638mVOm/iAXGW52aLigj1Zq0=
     last_login: 2016-10-08 09:02:55.083760+00:00
     is_superuser: false
     username: test
