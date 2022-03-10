@@ -1,4 +1,6 @@
 """Categorisation related implementations."""
+from modulefinder import Module
+import logging
 import os
 import pickle
 
@@ -11,6 +13,9 @@ from sklearn.pipeline import Pipeline
 from django.conf import settings
 
 from ctrack import models
+
+
+logger = logging.getLogger(__name__)
 
 
 class Categoriser:
@@ -51,6 +56,9 @@ class SklearnCategoriser(Categoriser):
     def fit(self):
         """Train a model using existing records."""
         data = models.Transaction.objects.filter(category__isnull=False).values_list('description', 'category__name')
+        self._fit_impl(data)
+
+    def _fit_impl(self, data):
         data = np.array(data)
 
         text_clf = Pipeline([('vect', CountVectorizer()),
@@ -80,7 +88,7 @@ class SklearnCategoriser(Categoriser):
         if probs.iloc[0] > self.THRESH:
             suggest = probs.iloc[:1]
         else:
-            suggest = probs.ix[probs.cumsum() < self.THRESH]
+            suggest = probs.loc[probs.cumsum() < self.THRESH]
         return suggest
 
     def to_bytes(self):
@@ -105,7 +113,11 @@ def _init():
     cls = globals()[clsname]
 
     if dumped_file and os.path.isfile(dumped_file):
-        categoriser = cls.from_bytes(open(dumped_file, 'rb').read())
+        try:
+            categoriser = cls.from_bytes(open(dumped_file, 'rb').read())
+        except ModuleNotFoundError:
+            logger.warn("Unable to load serialised categoriser.")
+            categoriser = cls()
     else:
         categoriser = cls()
     return categoriser
