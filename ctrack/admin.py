@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 
 from ctrack import models
 
@@ -38,8 +40,23 @@ class CategoryGroupListFilter(admin.SimpleListFilter):
             return queryset
         return queryset.filter(name__startswith=self.value())
 
-class CatecgoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(admin.ModelAdmin):
     list_filter = (CategoryGroupListFilter,)
+
+# Define an inline admin descriptor for UserSettings model
+# which acts a bit like a singleton
+class UserSettingsInline(admin.StackedInline):
+    model = models.UserSettings
+    can_delete = False
+    verbose_name_plural = 'settings'
+
+# Define a new User admin
+class UserAdmin(BaseUserAdmin):
+    inlines = [UserSettingsInline]
+
+# Re-register UserAdmin
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
 
 admin.site.register(models.Account)
 admin.site.register(models.Transaction, TransactionAdmin)
@@ -48,6 +65,7 @@ admin.site.register(models.PeriodDefinition)
 admin.site.register(models.Bill)
 admin.site.register(models.RecurringPayment)
 admin.site.register(models.BillPdfScraperConfig)
-admin.site.register(models.Category, CatecgoryAdmin)
+admin.site.register(models.Category, CategoryAdmin)
 admin.site.register(models.BalancePoint)
 admin.site.register(models.BudgetEntry)
+admin.site.register(models.CategorisorModel)

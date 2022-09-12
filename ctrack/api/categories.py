@@ -59,12 +59,14 @@ class SuggestCategories(generics.ListAPIView):
     serializer_class = ScoredCategorySerializer
 
     def get_queryset(self):
+        user = self.request.user
+        clf = user.usersettings.get_clf_model()
         try:
             transaction = Transaction.objects.get(pk=self.kwargs['pk'])
         except Transaction.DoesNotExist:
             raise Http404
         try:
-            return transaction.suggest_category()
+            return transaction.suggest_category(clf)
         except Category.DoesNotExist:
             raise Http404
 
