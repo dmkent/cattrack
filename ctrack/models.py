@@ -3,6 +3,7 @@ import importlib
 
 from dateutil.relativedelta import relativedelta
 from django.db import models
+from django.contrib.auth.models import User
 import numpy as np
 import pandas as pd
 import pytz
@@ -42,8 +43,7 @@ class Transaction(models.Model):
         self.save()
         [new_trans.save() for new_trans in new_transactions]
 
-    def suggest_category(self):
-        clf = categories.categoriser
+    def suggest_category(self, clf):
         result = []
         for name, score in clf.predict(self.description).iteritems():
             cat = Category.objects.get(name=name)
@@ -87,8 +87,7 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True,
-                 allow_categorisation=True):
+    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True):
         """Load an OFX file into the DB."""
         import ofxparse
         if hasattr(fname, 'read'):
@@ -114,15 +113,7 @@ class Account(models.Model):
                 description=trans.memo,
                 amount=trans.amount,
             )
-
-            if allow_categorisation:
-                cats = trans.suggest_category()
-                if len(cats) == 1:
-                    try:
-                        trans.category = Category.objects.get(pk=cats[0]['id'])
-                        trans.save()
-                    except Category.DoesNotExist:
-                        pass
+            yield trans
 
 
     def daily_balance(self):
@@ -452,3 +443,34 @@ class BudgetEntry(models.Model):
     class Meta:
         ordering = ["-valid_to"]
         verbose_name_plural = "budget entries"
+
+class CategorisorModel(models.Model):
+    name = models.CharField(max_length=20)
+    implementation = models.CharField(max_length=200)
+    from_date = models.DateField()
+    to_date = models.DateField()
+    model = models.BinaryField()
+    _model_clf = None
+
+    def clf_model(self):
+        if self._model_clf is None:
+            cls = categories.CategoriserFactory.get_by_name(self.implementation)
+            self._model_clf = cls.from_bytes(self.model)
+        return self._model_clf
+
+    def __str__(self):
+        return "{} ({})".format(self.name, self.implementation)
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    selected_categorisor = models.ForeignKey(CategorisorModel, null=True, on_delete=models.SET_NULL)
+    enable_db_categorisors = models.BooleanField(default=False)
+
+    def get_clf_model(self):
+        if not self.enable_db_categorisors:
+            return categories.CategoriserFactory.get_legacy_from_disk()
+
+        return self.selected_categorisor.clf_model()
+
+    def __str__(self) -> str:
+        return "Settings for {}".format(self.user.get_short_name())

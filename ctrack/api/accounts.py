@@ -6,7 +6,7 @@ from rest_framework import (decorators, response,
                             serializers, status, viewsets)
 from ctrack.api.data_serializer import LoadDataSerializer
 from ctrack.api.series_serializer import SeriesSerializer
-from ctrack.models import (Account)
+from ctrack.models import (Account, Category)
 
 
 logger = logging.getLogger(__name__)
@@ -30,11 +30,21 @@ class AccountViewSet(viewsets.ModelViewSet):
         serializer = LoadDataSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                account.load_ofx(serializer.validated_data['data_file'])
+                transactions = account.load_ofx(serializer.validated_data['data_file'])
             except (ValueError, IOError, TypeError):
                 logger.exception("OFX parse error")
                 return response.Response("Unable to load file. Bad format?",
                                          status=status.HTTP_400_BAD_REQUEST)
+
+            clf = request.user.usersettings.get_clf_model()
+            for trans in transactions:
+                cats = trans.suggest_category(clf)
+                if len(cats) == 1:
+                    try:
+                        trans.category = Category.objects.get(pk=cats[0]['id'])
+                        trans.save()
+                    except Category.DoesNotExist:
+                        pass
             return response.Response({'status': 'loaded'})
         else:
             return response.Response(serializer.errors,

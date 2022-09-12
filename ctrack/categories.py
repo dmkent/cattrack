@@ -1,5 +1,4 @@
 """Categorisation related implementations."""
-from modulefinder import Module
 import logging
 import os
 import pickle
@@ -18,13 +17,51 @@ from ctrack import models
 logger = logging.getLogger(__name__)
 
 
+class CategoriserFactory:
+    @staticmethod
+    def get_by_name(clsname):
+        cls = globals()[clsname]
+
+        if not issubclass(cls, Categoriser):
+            raise Exception("Unable to find Categorisor: " + clsname)
+
+        return cls
+
+    @staticmethod
+    def get_legacy_from_disk():
+        try:
+            dumped_file = settings.CTRACK_CATEGORISER_FILE
+        except AttributeError:
+            dumped_file = None
+        try:
+            clsname = settings.CTRACK_CATEGORISER
+        except AttributeError:
+            clsname = 'SklearnCategoriser'
+
+        cls = globals()[clsname]
+
+        if dumped_file and os.path.isfile(dumped_file):
+            try:
+                categoriser = cls.from_bytes(open(dumped_file, 'rb').read())
+            except ModuleNotFoundError:
+                logger.warn("Unable to load serialised categoriser.")
+                categoriser = cls()
+        else:
+            categoriser = cls()
+        return categoriser
+
+
 class Categoriser:
     """
         A base categoriser.
 
-        Sub-classes need to provide ``fit`` and ``predict`` implentations.
+        Sub-classes need to provide ``fit`` and ``predict`` implementations.
     """
     def fit(self):
+        """Train a model using existing records."""
+        self.fit_queryset(models.Transaction.objects.filter(category__isnull=False))
+
+    def fit_queryset(self, queryset):
         raise NotImplementedError("Must be subclassed.")
 
     def predict(self, text):
@@ -53,9 +90,9 @@ class SklearnCategoriser(Categoriser):
     def __init__(self, clf=None):
         self._clf = clf
 
-    def fit(self):
+    def fit_queryset(self, queryset):
         """Train a model using existing records."""
-        data = models.Transaction.objects.filter(category__isnull=False).values_list('description', 'category__name')
+        data = queryset.values_list('description', 'category__name')
         self._fit_impl(data)
 
     def _fit_impl(self, data):
@@ -99,26 +136,3 @@ class SklearnCategoriser(Categoriser):
     def from_bytes(data):
         """Load object from bytes."""
         return SklearnCategoriser(pickle.loads(data))
-
-def _init():
-    try:
-        dumped_file = settings.CTRACK_CATEGORISER_FILE
-    except AttributeError:
-        dumped_file = None
-    try:
-        clsname = settings.CTRACK_CATEGORISER
-    except AttributeError:
-        clsname = 'SklearnCategoriser'
-
-    cls = globals()[clsname]
-
-    if dumped_file and os.path.isfile(dumped_file):
-        try:
-            categoriser = cls.from_bytes(open(dumped_file, 'rb').read())
-        except ModuleNotFoundError:
-            logger.warn("Unable to load serialised categoriser.")
-            categoriser = cls()
-    else:
-        categoriser = cls()
-    return categoriser
-categoriser = _init()

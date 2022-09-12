@@ -15,6 +15,8 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
+from django.urls import path
+from ctrack import views
 from ctrack.api import urls as api_urls
 from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token
 
@@ -24,4 +26,5 @@ urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api-token-auth/', obtain_jwt_token),
     url(r'^api-token-refresh/', refresh_jwt_token),
+    path(r'test/validate/<int:cid>/<from_date_str>/<to_date_str>', views.validate_categorisor)
 ]
