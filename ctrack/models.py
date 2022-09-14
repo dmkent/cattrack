@@ -97,8 +97,11 @@ class Account(models.Model):
                 data = ofxparse.OfxParser.parse(fobj)
 
         if from_exist_latest:
-            latest_trans = self.transaction_set.latest('when')
-            from_date = latest_trans.when
+            try:
+                latest_trans = self.transaction_set.latest('when')
+                from_date = latest_trans.when
+            except:
+                from_date = None
 
         for trans in data.account.statement.transactions:
             tdate = pytz.utc.localize(trans.date)
