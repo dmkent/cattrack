@@ -1,27 +1,16 @@
 """ctrack REST API
 """
+from datetime import datetime, time
 import logging
-import re
 
-from rest_framework import status, response, serializers, viewsets
+from django.utils import timezone
+from rest_framework import decorators, status, response, viewsets
+from ctrack.api.serializers.categorisor import CategorisorSerializer, CreateCategorisor, ValidateSerializer, ValidationResponseSerializer
 from ctrack.categories import CategoriserFactory
 from ctrack.models import CategorisorModel, Transaction
 
 
 logger = logging.getLogger(__name__)
-
-
-class CategorisorSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = CategorisorModel
-        fields = ('url', 'id', 'name', 'implementation', 'from_date', 'to_date')
-
-
-class CreateCategorisor(serializers.Serializer):
-    name = serializers.CharField()
-    implementation = serializers.CharField()
-    from_date = serializers.DateField()
-    to_date = serializers.DateField()
 
 
 class CategorisorViewSet(viewsets.ModelViewSet):
@@ -61,3 +50,39 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         else:
             return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @decorators.action(detail=True, methods=["get"], serializer_class=ValidateSerializer)
+    def validate(self, request, pk=None):
+        categorisor = self.get_object()
+        serializer = self.get_serializer(data=request.query_params)
+
+        serializer.is_valid(raise_exception=True)
+
+        from_date = datetime.combine(serializer.validated_data['from_date'], time(), timezone.get_current_timezone())
+        to_date = datetime.combine(serializer.validated_data['to_date'], time(), timezone.get_current_timezone())
+
+        transactions = Transaction.objects.filter(
+                when__gte=from_date,
+                when__lte=to_date,
+            )
+        clf = categorisor.clf_model()
+
+        count = 0
+        matched = 0
+        failed = []
+        for trans in transactions:
+            if trans.category:
+                suggested = trans.suggest_category(clf)
+                count += 1
+                if suggested[0]['id'] == trans.category.id:
+                    matched += 1
+                else:
+                    failed += [{
+                        "transaction": trans,
+                        "modelled": suggested[0]
+                    }]
+
+        responseSerializer = ValidationResponseSerializer(
+            {"count": count, "matched": matched, "failed": failed},
+            context={'request': request}
+        )
+        return response.Response(responseSerializer.data)
