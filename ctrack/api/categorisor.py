@@ -28,15 +28,14 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             )
 
             try:
-                cls = CategoriserFactory.get_by_name(serializer.validated_data['implementation'])
+                bin_data = self.calibrate(
+                    serializer.validated_data['from_date'],
+                    serializer.validated_data['to_date'],
+                    serializer.validated_data['implementation']
+                )
             except Exception:
                 return response.Response({'error': 'Unknown implementation: '},
                     status=status.HTTP_400_BAD_REQUEST)
-
-            categorisor = cls()
-            categorisor.fit_queryset(transactions)
-
-            bin_data = categorisor.to_bytes()
 
             record = CategorisorModel.objects.create(
                 name=serializer.validated_data['name'],
@@ -49,6 +48,29 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             return response.Response(CategorisorSerializer(record, context={'request': request}).data)
         else:
             return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def calibrate(self, from_date, to_date, implementation):
+            transactions = Transaction.objects.filter(
+                when__gte=from_date,
+                when__lte=to_date,
+                category__isnull=False
+            )
+
+            cls = CategoriserFactory.get_by_name(implementation)
+
+            categorisor = cls()
+            categorisor.fit_queryset(transactions)
+
+            return categorisor.to_bytes()
+    
+    @decorators.action(detail=True, methods=["get", "post"])
+    def recalibrate(self, request, pk=None):
+        details = self.get_object()
+        bin_data = self.calibrate(details.from_date, details.to_date, details.implementation)
+        details.model = bin_data
+        details.save()
+
+        return response.Response("ok")
 
     @decorators.action(detail=True, methods=["get"], serializer_class=ValidateSerializer)
     def validate(self, request, pk=None):
