@@ -24,7 +24,7 @@ PyJWT==2.10.1
 python-dateutil==2.9.0
 pytz==2025.1
 PyYAML==6.0.2
-requests==2.22.0
+requests==2.32.2
 scikit-learn==1.6.1
 scipy==1.15.2
 simplegeneric==0.8.1
