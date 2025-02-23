@@ -45,7 +45,7 @@ class Transaction(models.Model):
 
     def suggest_category(self, clf):
         result = []
-        for name, score in clf.predict(self.description).iteritems():
+        for name, score in clf.predict(self.description).items():
             cat = Category.objects.get(name=name)
             result.append({
                 'name': cat.name,
