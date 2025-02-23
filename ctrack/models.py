@@ -134,7 +134,7 @@ class Account(models.Model):
             .order_by('when')
         )
         if len(transactions) <= 0:
-            return pd.Series()
+            return pd.Series(dtype='float64')
         series = pd.DataFrame({obj.id: {
             'when': obj.when,
             'amount': float(obj.amount)

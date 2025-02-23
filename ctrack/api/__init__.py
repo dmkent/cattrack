@@ -1,6 +1,7 @@
 """ctrack REST API
 """
-from django.conf.urls import url, include
+from django.conf.urls import include
+from django.urls import re_path
 from rest_framework import routers
 from ctrack.api.accounts import AccountViewSet
 from ctrack.api.budget_entry import BudgetEntryViewSet
@@ -20,8 +21,8 @@ router.register(r'payments', RecurringPaymentViewSet)
 router.register(r'bills', BillViewSet)
 router.register(r'budget', BudgetEntryViewSet)
 urls = [
-    url(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
-    url(r'^categories/summary/(?P<from>[0-9]+)/(?P<to>[0-9]+)$', CategorySummary.as_view()),
-    url(r'^periods/$', PeriodDefinitionView.as_view()),
-    url(r'^', include(router.urls)),
+    re_path(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
+    re_path(r'^categories/summary/(?P<from>[0-9]+)/(?P<to>[0-9]+)$', CategorySummary.as_view()),
+    re_path(r'^periods/$', PeriodDefinitionView.as_view()),
+    re_path(r'^', include(router.urls)),
 ]
