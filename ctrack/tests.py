@@ -17,7 +17,7 @@ class AccountTestCase(TestCase):
 class TransactionTestCase(TestCase):
     def setUp(self):
         acc = models.Account.objects.create(name='test')
-        trans = models.Transaction.objects.create(when=datetime(2013, 1, 1), account=acc, amount=34.2)
+        trans = models.Transaction.objects.create(when=datetime(2013, 1, 1, tzinfo=pytz.utc), account=acc, amount=34.2)
         cat1 = models.Category.objects.create(name='Cash')
         cat2 = models.Category.objects.create(name='Groceries')
 
