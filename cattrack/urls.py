@@ -19,13 +19,16 @@ from django.contrib import admin
 from django.urls import path
 from ctrack import views
 from ctrack.api import urls as api_urls
-from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     re_path(r'^api/', include(api_urls)),
     re_path(r'^admin/', admin.site.urls),
     re_path(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    re_path(r'^api-token-auth/', obtain_jwt_token),
-    re_path(r'^api-token-refresh/', refresh_jwt_token),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path(r'test/validate/<int:cid>/<from_date_str>/<to_date_str>', views.validate_categorisor)
 ]

@@ -1,11 +1,11 @@
 beautifulsoup4==4.8.0
 decorator==4.4.0
-django==3.2.25
+django==4.0.10
 django-cors-headers==3.14.0
 django-crispy-forms==1.7.2
 django-filter==23.1
 djangorestframework==3.13.1
-djangorestframework-jwt==1.11.0
+djangorestframework-simplejwt==5.3.1
 gunicorn==19.9.0
 ipython==8.10.0
 ipython-genutils==0.2.0
@@ -21,7 +21,6 @@ prompt-toolkit==3.0.50
 psycopg2-binary==2.8.6
 ptyprocess==0.6.0
 pygments==2.7.4
-PyJWT==1.7.1
 python-dateutil==2.8.0
 pytz==2019.2
 PyYAML==5.4
