@@ -53,7 +53,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.filter(is_split=False).order_by("-when", "-pk")
     serializer_class = TransactionSerializer
     pagination_class = PageNumberSettablePagination
-    filter_class = DateRangeTransactionFilter
+    filterset_class = DateRangeTransactionFilter
 
     @decorators.action(detail=True, methods=["post"])
     def split(self, request, pk=None):
