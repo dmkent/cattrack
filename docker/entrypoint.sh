@@ -14,4 +14,4 @@ fi
 python manage.py collectstatic --no-input --settings cattrack.settings_prod
 
 # Fire off the server
-gunicorn --env DJANGO_SETTINGS_MODULE=cattrack.settings_prod --workers 3 -b 0.0.0.0:8000 cattrack.wsgi:application
+gunicorn --env DJANGO_SETTINGS_MODULE=cattrack.settings_prod --workers 3 -b 0.0.0.0:8000 --timeout 120 cattrack.wsgi:application
