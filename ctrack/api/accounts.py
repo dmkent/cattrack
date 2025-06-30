@@ -32,8 +32,14 @@ class AccountViewSet(viewsets.ModelViewSet):
         account = self.get_object()
         serializer = LoadDataSerializer(data=request.data)
         if serializer.is_valid():
+            from_date = serializer.validated_data.get('from_date')
+            to_date = serializer.validated_data.get('to_date')
+            from_latest = from_date is None and to_date is None
             try:
-                transactions = account.load_ofx(serializer.validated_data['data_file'])
+                transactions = account.load_ofx(serializer.validated_data['data_file'],
+                                                from_date=from_date,
+                                                to_date=to_date,
+                                                from_exist_latest=from_latest)
             except (ValueError, IOError, TypeError):
                 logger.exception("OFX parse error")
                 return response.Response("Unable to load file. Bad format?",

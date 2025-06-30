@@ -99,12 +99,12 @@ class Account(models.Model):
         if from_exist_latest:
             try:
                 latest_trans = self.transaction_set.latest('when')
-                from_date = latest_trans.when
+                from_date = latest_trans.when.date()
             except:
                 from_date = None
 
         for trans in data.account.statement.transactions:
-            tdate = pytz.utc.localize(trans.date)
+            tdate = pytz.utc.localize(trans.date).date()
             if from_date and tdate <= from_date:
                 continue
             if to_date and tdate > to_date:
