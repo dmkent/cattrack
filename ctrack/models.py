@@ -9,6 +9,7 @@ import pandas as pd
 import pytz
 
 from ctrack import categories
+from ctrack.transaction_import import TransactionFileFormat, TransactionImporter
 
 class Transaction(models.Model):
     """A single one-way transaction."""
@@ -89,13 +90,6 @@ class Account(models.Model):
 
     def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True):
         """Load an OFX file into the DB."""
-        import ofxparse
-        if hasattr(fname, 'read'):
-            data = ofxparse.OfxParser.parse(fname)
-        else:
-            with open(fname, 'rb') as fobj:
-                data = ofxparse.OfxParser.parse(fobj)
-
         if from_exist_latest:
             try:
                 latest_trans = self.transaction_set.latest('when')
@@ -103,17 +97,16 @@ class Account(models.Model):
             except:
                 from_date = None
 
-        for trans in data.account.statement.transactions:
-            tdate = pytz.utc.localize(trans.date).date()
-            if from_date and tdate <= from_date:
-                continue
-            if to_date and tdate > to_date:
-                continue
+        loaded_transactions = TransactionImporter().load_from_file(
+            fname, expected_format=TransactionFileFormat.OFX,
+            from_date=from_date, to_date=to_date
+        )
 
+        for trans in loaded_transactions:
             trans = Transaction.objects.create(
-                when=tdate,
+                when=trans.when,
                 account=self,
-                description=trans.memo,
+                description=trans.description,
                 amount=trans.amount,
             )
             yield trans
