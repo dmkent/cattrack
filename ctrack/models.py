@@ -88,7 +88,7 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def load_ofx(self, fname, from_date=None, to_date=None, from_exist_latest=True):
+    def load_transactions(self, fname, from_date=None, to_date=None, from_exist_latest=True):
         """Load an OFX file into the DB."""
         if from_exist_latest:
             try:
@@ -98,8 +98,9 @@ class Account(models.Model):
                 from_date = None
 
         loaded_transactions = TransactionImporter().load_from_file(
-            fname, expected_format=TransactionFileFormat.OFX,
-            from_date=from_date, to_date=to_date
+            fname,
+            from_date=from_date,
+            to_date=to_date
         )
 
         for trans in loaded_transactions:
