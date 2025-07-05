@@ -79,7 +79,7 @@ class TransactionImporter:
 
         file_string = file_obj.read().decode('utf-8')
         separator = "\r\n" if file_string.count("\r\n") > 1 else "\n"
-        qif = Qif.parse_string(file_string, separator=separator)
+        qif = Qif.parse_string(file_string, separator=separator, day_first=True)
 
         first_account = list(qif.accounts.keys())[0]
         account = qif.accounts[first_account]

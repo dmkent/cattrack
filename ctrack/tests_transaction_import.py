@@ -64,13 +64,13 @@ NEWFILEUID:NONE
 
         self.qif_data = b"""
 !Type:Bank
-D26/06/2025
+D20/06/2025
 T-160.00
 N1
 PIB TRANSFER 756745 TO 346645745 5:05PM
 LDEBIT
 ^
-D26/06/2025
+D01/06/2025
 T-690.00
 N2
 PTo Phone 05:05PM 26Jun
@@ -106,12 +106,12 @@ LDEBIT
         self.assertEqual(result[0].amount, Decimal('-160.00'))
         self.assertEqual(result[0].when.year, 2025)
         self.assertEqual(result[0].when.month, 6)
-        self.assertEqual(result[0].when.day, 26)
+        self.assertEqual(result[0].when.day, 20)
         self.assertEqual(result[0].description, 'IB TRANSFER 756745 TO 346645745 5:05PM')
         self.assertEqual(result[1].amount, Decimal('-690.00'))
         self.assertEqual(result[1].when.year, 2025)
         self.assertEqual(result[1].when.month, 6)
-        self.assertEqual(result[1].when.day, 26)
+        self.assertEqual(result[1].when.day, 1)
         self.assertEqual(result[1].description, 'To Phone 05:05PM 26Jun')
 
     def test_load_from_file_ofx(self):
