@@ -125,7 +125,7 @@
   pk: 2
   fields:
     label: Financial Year
-    frequency: AS-JUL
+    frequency: YS-JUL
 - model: ctrack.PeriodDefinition
   pk: 3
   fields:
