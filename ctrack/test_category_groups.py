@@ -258,9 +258,22 @@ class CategoryGroupAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Verify that we have data grouped by weeks
-        # The exact dates depend on pandas resampling behavior
-        self.assertGreater(len(response.data), 0)
+        # Verify that we have exactly 2 weekly buckets
+        self.assertEqual(len(response.data), 2)
+
+        # With W-WED resampling (week ending Wednesday):
+        # - Tuesday Jan 7 falls into week ending Wed Jan 7
+        # - Wednesday Jan 8 falls into week ending Wed Jan 14
+        
+        # First bucket: week ending Wednesday Jan 7
+        first_bucket = response.data[0]
+        self.assertEqual(first_bucket["label"], "2026-01-07T00:00:00Z")
+        self.assertEqual(float(first_bucket["value"]), 100.00)
+        
+        # Second bucket: week ending Wednesday Jan 14
+        second_bucket = response.data[1]
+        self.assertEqual(second_bucket["label"], "2026-01-14T00:00:00Z")
+        self.assertEqual(float(second_bucket["value"]), 200.00)
 
     def test_weekly_summary_excludes_other_categories(self):
         """Test that weekly summary only includes transactions from grouped categories."""
