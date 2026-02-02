@@ -163,6 +163,19 @@ class Category(models.Model):
         verbose_name_plural = "categories"
 
 
+class CategoryGroup(models.Model):
+    """A group of categories for aggregated transaction summaries."""
+    name = models.CharField(max_length=100)
+    categories = models.ManyToManyField(Category, related_name='category_groups')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "category groups"
+
+
 class PeriodDefinition(models.Model):
     """
         A flexible set of time periods for summarising transactions.
