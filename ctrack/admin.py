@@ -53,10 +53,10 @@ class CategoryGroupAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(Count('categories'))
+        return qs.annotate(categories_count=Count('categories'))
 
     def category_count(self, obj):
-        return obj.categories__count
+        return getattr(obj, 'categories_count', obj.categories.count())
 
     category_count.short_description = "Number of Categories"
 
