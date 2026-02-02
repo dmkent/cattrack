@@ -29,7 +29,6 @@ class CategoryGroupListFilter(admin.SimpleListFilter):
         """
         cats = model_admin.get_queryset(request).values("name")
         names = sorted(set(cat["name"].split(" - ")[0] for cat in cats))
-        print(names)
         return [(name, name) for name in names]
 
     def queryset(self, request, queryset):

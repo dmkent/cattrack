@@ -1,10 +1,9 @@
 """Category Groups REST API"""
 
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.utils.dateparse import parse_date
 from rest_framework import decorators, response, serializers, viewsets
 import pandas as pd
-import pytz
 
 from ctrack.models import CategoryGroup, Transaction
 from ctrack.api.series_serializer import SeriesSerializer
@@ -96,7 +95,7 @@ class CategoryGroupViewSet(viewsets.ModelViewSet):
 
         # Resample by week starting on Wednesday, sum amounts
         # W-WED means week ending on Wednesday, so we need W-TUE to start on Wednesday
-        weekly_series = df["amount"].resample("W-WED").sum()
+        weekly_series = df["amount"].resample("W-TUE").sum()
 
         # Convert to format expected by SeriesSerializer
         weekly_series.index.name = "dtime"
