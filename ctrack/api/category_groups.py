@@ -94,8 +94,7 @@ class CategoryGroupViewSet(viewsets.ModelViewSet):
         df.set_index("when", inplace=True)
 
         # Resample by week starting on Wednesday, sum amounts
-        # W-WED means week ending on Wednesday, so we need W-TUE to start on Wednesday
-        weekly_series = df["amount"].resample("W-TUE").sum()
+        weekly_series = df["amount"].resample("W-WED").sum()
 
         # Convert to format expected by SeriesSerializer
         weekly_series.index.name = "dtime"
