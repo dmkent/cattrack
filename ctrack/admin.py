@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
@@ -49,8 +50,12 @@ class CategoryAdmin(admin.ModelAdmin):
 class CategoryGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "category_count")
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(categories_count=Count('categories'))
+
     def category_count(self, obj):
-        return obj.categories.count()
+        return getattr(obj, 'categories_count', obj.categories.count())
 
     category_count.short_description = "Number of Categories"
 
