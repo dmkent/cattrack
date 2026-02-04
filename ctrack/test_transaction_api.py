@@ -1,7 +1,6 @@
 """Tests for Transaction API endpoints."""
 
 from datetime import datetime
-from django.test import TestCase
 import pytz
 from rest_framework.test import APITestCase
 from rest_framework import status
