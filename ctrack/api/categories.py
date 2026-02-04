@@ -99,3 +99,34 @@ class CategorySummary(generics.ListAPIView):
                 "budget": budget
             })
         return result
+
+
+class CategoryTotalsSerializer(serializers.Serializer):
+    category = serializers.IntegerField()
+    category_name = serializers.CharField(max_length=40, source='category__name')
+    total = serializers.DecimalField(max_digits=20, decimal_places=2)
+
+
+class CategoryTotals(generics.ListAPIView):
+    """
+        Per-category totals for a given time period.
+    """
+    serializer_class = CategoryTotalsSerializer
+
+    def get_queryset(self):
+        from dateutil import relativedelta
+        from_date = parse_date(self.kwargs["from"])
+        to_date = parse_date(self.kwargs["to"])
+        # Add one day to to_date to include the entire day (use __lt instead of __lte)
+        to_date = to_date + relativedelta.relativedelta(days=1)
+        filters = {
+            "when__gte": from_date,
+            "when__lt": to_date,
+            "is_split": False,
+        }
+        result = (Transaction.objects
+                  .filter(**filters)
+                  .values('category', 'category__name')
+                  .annotate(total=Sum('amount'))
+                  .order_by('total'))
+        return result
