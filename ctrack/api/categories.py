@@ -3,6 +3,7 @@
 import logging
 
 from dateutil.parser import parse as parse_date
+from dateutil import relativedelta
 
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
@@ -109,12 +110,28 @@ class CategoryTotalsSerializer(serializers.Serializer):
 
 class CategoryTotals(generics.ListAPIView):
     """
-        Per-category totals for a given time period.
+    Per-category transaction totals for a given time period.
+    
+    Returns aggregated transaction amounts grouped by category for the specified
+    date range. Split transactions (is_split=True) are excluded to prevent
+    double-counting.
+    
+    URL Parameters:
+        from: Start date in YYYY-MM-DD format (inclusive)
+        to: End date in YYYY-MM-DD format (inclusive)
+    
+    Returns:
+        List of objects containing:
+            - category: Category ID (integer)
+            - category_name: Category name (string)
+            - total: Sum of transaction amounts for the category (decimal)
+    
+    Example:
+        GET /api/categories/totals/2026-01-01/2026-01-31
     """
     serializer_class = CategoryTotalsSerializer
 
     def get_queryset(self):
-        from dateutil import relativedelta
         from_date = parse_date(self.kwargs["from"])
         to_date = parse_date(self.kwargs["to"])
         # Add one day to to_date to include the entire day (use __lt instead of __lte)
