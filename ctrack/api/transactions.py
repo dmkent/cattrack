@@ -45,9 +45,10 @@ class DateRangeTransactionFilter(filters.FilterSet):
     has_category = django_filters.BooleanFilter(
         field_name='category', exclude=True, lookup_expr='isnull',
     )
+    description = django_filters.CharFilter(field_name='description', lookup_expr='icontains')
     class Meta:
         model = Transaction
-        fields = ('from_date', 'to_date', 'account', 'category', 'has_category')
+        fields = ('from_date', 'to_date', 'account', 'category', 'has_category', 'description')
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.filter(is_split=False).order_by("-when", "-pk")
