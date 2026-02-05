@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 
 import datetime
 import os
+import re
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -161,6 +162,34 @@ SIMPLE_JWT = {
 }
 
 CORS_ORIGIN_ALLOW_ALL = False
-CORS_ORIGIN_WHITELIST = (
-    os.environ.get('APP_CORS_WHITELIST'),
-)
+CORS_ALLOWED_ORIGINS = [
+    origin.strip() 
+    for origin in os.environ.get('APP_CORS_WHITELIST', '').split(',') 
+    if origin.strip()
+]
+
+# Safely parse regex patterns from environment variable
+def _parse_cors_regexes():
+    regex_patterns = []
+    regex_string = os.environ.get('APP_CORS_REGEX_WHITELIST', '')
+    
+    if not regex_string:
+        return regex_patterns
+    
+    for pattern in regex_string.split(','):
+        pattern = pattern.strip()
+        if not pattern:
+            continue
+        try:
+            # Test compile to validate the regex
+            re.compile(pattern)
+            regex_patterns.append(pattern)
+        except re.error as e:
+            # Log the error but don't crash the application
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Invalid CORS regex pattern '{pattern}': {e}")
+    
+    return regex_patterns
+
+CORS_ALLOWED_ORIGIN_REGEXES = _parse_cors_regexes()
