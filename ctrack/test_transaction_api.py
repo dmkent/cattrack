@@ -21,7 +21,7 @@ class TransactionAPITestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         # Create test categories
-        self.cat1 = models.Category.objects.create(name="Groceries")
+        self.cat1 = models.Category.objects.create(name="Food - Groceries")
         self.cat2 = models.Category.objects.create(name="Transport")
 
         # Create test account
@@ -62,7 +62,7 @@ class TransactionAPITestCase(APITestCase):
         response = self.client.get("/api/transactions/", {"description": "supermarket"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)
-        
+
         descriptions = [item["description"] for item in response.data["results"]]
         self.assertIn("Woolworths Supermarket", descriptions)
         self.assertIn("Coles Supermarket", descriptions)
@@ -84,17 +84,18 @@ class TransactionAPITestCase(APITestCase):
         """Test combining description search with date filters."""
         response = self.client.get(
             "/api/transactions/",
-            {"description": "supermarket", "from_date": "2026-01-02"}
+            {"description": "supermarket", "from_date": "2026-01-02"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
-        self.assertEqual(response.data["results"][0]["description"], "Coles Supermarket")
+        self.assertEqual(
+            response.data["results"][0]["description"], "Coles Supermarket"
+        )
 
     def test_search_by_description_combined_with_category_filter(self):
         """Test combining description search with category filter."""
         response = self.client.get(
-            "/api/transactions/",
-            {"description": "ticket", "category": self.cat2.id}
+            "/api/transactions/", {"description": "ticket", "category": self.cat2.id}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
@@ -105,3 +106,31 @@ class TransactionAPITestCase(APITestCase):
         response = self.client.get("/api/transactions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 4)
+
+    def test_summary_returns_subcategory_values(self):
+        """Summary endpoint includes computed subcategory field."""
+        response = self.client.get("/api/transactions/summary/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        summary = {item["category_name"]: item for item in response.data}
+        self.assertIn("Food - Groceries", summary)
+        self.assertIn("Transport", summary)
+        self.assertEqual(summary["Food - Groceries"]["subcategory"], "Food")
+        self.assertEqual(summary["Transport"]["subcategory"], "Transport")
+
+    def test_summary_normalizes_null_category_name(self):
+        """Summary response converts null category names to literal 'None'."""
+        models.Transaction.objects.create(
+            when=datetime(2026, 1, 5, 12, 0, tzinfo=pytz.utc),
+            account=self.account,
+            amount=25.00,
+            category=None,
+            description="Uncategorised",
+        )
+
+        response = self.client.get("/api/transactions/summary/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        uncategorised = next(item for item in response.data if item["category"] is None)
+        self.assertEqual(uncategorised["category_name"], "None")
+        self.assertEqual(uncategorised["subcategory"], "None")
