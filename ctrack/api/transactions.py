@@ -34,9 +34,21 @@ class PageNumberSettablePagination(pagination.PageNumberPagination):
 
 
 class SummarySerializer(serializers.Serializer):
-    category = serializers.IntegerField()
-    category_name = serializers.CharField(max_length=40, source='category__name')
+    category = serializers.IntegerField(allow_null=True)
+    category_name = serializers.CharField(max_length=100, source='category__name', allow_null=True)
+    subcategory = serializers.SerializerMethodField()
     total = serializers.DecimalField(max_digits=20, decimal_places=2)
+
+    def get_subcategory(self, obj):
+        return Category.subcategory_prefix_from_name(obj.get('category__name'))
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('category_name') is None:
+            data['category_name'] = "None"
+        if data.get('subcategory') is None:
+            data['subcategory'] = "None"
+        return data
 
 
 class DateRangeTransactionFilter(filters.FilterSet):

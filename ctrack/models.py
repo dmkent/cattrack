@@ -157,6 +157,17 @@ class Category(models.Model):
     @property
     def group(self):
         return self.name.split(' - ')[0]
+
+    @staticmethod
+    def subcategory_prefix_from_name(name):
+        if not name:
+            return "None"
+        prefix = name.split('-', 1)[0].strip()
+        return prefix or "None"
+
+    @property
+    def subcategory_prefix(self):
+        return Category.subcategory_prefix_from_name(self.name)
     
     class Meta:
         ordering = ["name"]
