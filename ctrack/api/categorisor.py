@@ -14,7 +14,7 @@ from ctrack.api.serializers.categorisor import (
     CrossValidateSaveSerializer,
 )
 from ctrack.categories import CategoriserFactory
-from ctrack.models import CategorisorModel, Transaction, UserSettings
+from ctrack.models import Category, CategorisorModel, Transaction, UserSettings
 
 
 logger = logging.getLogger(__name__)
@@ -192,6 +192,9 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         calibration_qs = Transaction.objects.filter(pk__in=calibration_pks)
         categorisor.fit_queryset(calibration_qs)
 
+        # Pre-fetch category name -> id mapping to avoid N+1 queries
+        category_map = {c.name: c.id for c in Category.objects.all()}
+
         # Evaluate on validation set
         validation_qs = Transaction.objects.filter(pk__in=validation_pks).select_related('category')
         count = 0
@@ -201,18 +204,23 @@ class CategorisorViewSet(viewsets.ModelViewSet):
 
         for trans in validation_qs:
             if trans.category:
-                suggested = trans.suggest_category(categorisor)
+                predictions = categorisor.predict(trans.description)
+                suggested = [
+                    {'name': name, 'id': category_map.get(name), 'score': int(round(score * 100.0, 0))}
+                    for name, score in predictions.items()
+                    if name in category_map
+                ]
                 count += 1
                 cat_name = trans.category.name
                 category_stats[cat_name]["total"] += 1
 
-                if suggested[0]['id'] == trans.category.id:
+                if suggested and suggested[0]['id'] == trans.category.id:
                     matched += 1
                     category_stats[cat_name]["correct"] += 1
                 else:
                     failed.append({
                         "transaction": trans,
-                        "modelled": suggested[0]
+                        "modelled": suggested[0] if suggested else None
                     })
 
         category_metrics = [
@@ -264,6 +272,13 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         to_date = datetime.combine(data['to_date'], time.max, timezone.get_current_timezone())
 
         if data['recalibrate_full']:
+            if not Transaction.objects.filter(
+                when__gte=from_date, when__lte=to_date, category__isnull=False
+            ).exists():
+                return response.Response(
+                    {'error': 'No categorised transactions found in the specified period.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             bin_data = self.calibrate(from_date, to_date, data['implementation'])
         else:
             missing = [f for f in ('split_ratio', 'random_seed') if f not in data]

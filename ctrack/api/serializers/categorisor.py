@@ -26,7 +26,7 @@ class SuggestionSerializer(serializers.Serializer):
 
 class FailedMatchSerializer(serializers.Serializer):
     transaction = TransactionSerializer()
-    modelled = SuggestionSerializer()
+    modelled = SuggestionSerializer(allow_null=True)
     
 class ValidationResponseSerializer(serializers.Serializer):
     count = serializers.IntegerField()

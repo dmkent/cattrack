@@ -271,6 +271,17 @@ class CrossValidateSaveAPITestCase(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Unknown implementation", resp.data["error"])
 
+    def test_save_recalibrate_full_empty_period(self):
+        """Returns 400 when recalibrate_full but no transactions in period."""
+        resp = self.client.post("/api/categorisor/cross_validate_save/", {
+            "name": "empty-model",
+            "from_date": "2027-01-01",
+            "to_date": "2027-12-31",
+            "recalibrate_full": True,
+        })
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("No categorised transactions", resp.data["error"])
+
     def test_save_with_set_as_default(self):
         resp = self.client.post("/api/categorisor/cross_validate_save/", {
             "name": "default-model",
