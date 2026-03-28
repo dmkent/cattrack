@@ -26,7 +26,7 @@ class SuggestionSerializer(serializers.Serializer):
 
 class FailedMatchSerializer(serializers.Serializer):
     transaction = TransactionSerializer()
-    modelled = SuggestionSerializer()
+    modelled = SuggestionSerializer(allow_null=True)
     
 class ValidationResponseSerializer(serializers.Serializer):
     count = serializers.IntegerField()
@@ -34,3 +34,45 @@ class ValidationResponseSerializer(serializers.Serializer):
     failed = serializers.ListField(
         child=FailedMatchSerializer()
     )
+
+class CrossValidateSerializer(serializers.Serializer):
+    implementation = serializers.CharField(default='SklearnCategoriser')
+    from_date = serializers.DateField()
+    to_date = serializers.DateField()
+    split_ratio = serializers.FloatField(default=0.5, min_value=0.1, max_value=0.9)
+    random_seed = serializers.IntegerField(required=False)
+
+class CategoryMetricSerializer(serializers.Serializer):
+    category_name = serializers.CharField()
+    correct = serializers.IntegerField()
+    total = serializers.IntegerField()
+    precision = serializers.FloatField()
+
+class CrossValidationErrorSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    message = serializers.CharField()
+
+class CrossValidationResponseSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    random_seed = serializers.IntegerField()
+    implementation = serializers.CharField()
+    from_date = serializers.DateField()
+    to_date = serializers.DateField()
+    split_ratio = serializers.FloatField()
+    calibration_size = serializers.IntegerField()
+    validation_size = serializers.IntegerField()
+    accuracy = serializers.FloatField()
+    count = serializers.IntegerField()
+    matched = serializers.IntegerField()
+    category_metrics = CategoryMetricSerializer(many=True)
+    failed = FailedMatchSerializer(many=True)
+
+class CrossValidateSaveSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=20)
+    implementation = serializers.CharField(default='SklearnCategoriser')
+    from_date = serializers.DateField()
+    to_date = serializers.DateField()
+    recalibrate_full = serializers.BooleanField(default=True)
+    split_ratio = serializers.FloatField(required=False, min_value=0.1, max_value=0.9)
+    random_seed = serializers.IntegerField(required=False)
+    set_as_default = serializers.BooleanField(default=False)
