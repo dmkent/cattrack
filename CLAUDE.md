@@ -74,6 +74,14 @@ $CONDA_RUN python manage.py loaddata ctrack/fixtures/*.yaml
 - `UserSettings.selected_categorisor`: FK to the user's default model; `enable_db_categorisors` toggles DB vs legacy disk mode
 - `Transaction.suggest_category(clf)`: calls `clf.predict()` then looks up `Category` by name — has N+1 query issue (each prediction does `Category.objects.get(name=name)`)
 
+## API Schema
+
+An OpenAPI 3.0 schema can be generated at `docs/openapi-schema.yaml` (git-ignored). Generate it when you need to understand the API:
+
+```bash
+$CONDA_RUN python manage.py spectacular --format openapi --file docs/openapi-schema.yaml
+```
+
 ## Known Technical Debt
 
 - `Transaction.suggest_category()` has an N+1 query pattern — callers needing bulk evaluation should pre-fetch a category name→id map and call `clf.predict()` directly (see `cross_validate` for the pattern)
