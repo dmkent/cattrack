@@ -2,14 +2,14 @@
 """
 from rest_framework import serializers
 from ctrack.api.transactions import TransactionSerializer
-from ctrack.models import CategorisorModel
+from ctrack.models import Category, CategorisorModel, Transaction
 
 class CategorisorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = CategorisorModel
         fields = ('url', 'id', 'name', 'implementation', 'from_date', 'to_date')
 
-class ValidateSerializer(serializers.Serializer):
+class DateRangeSerializer(serializers.Serializer):
     from_date = serializers.DateField()
     to_date = serializers.DateField()
 
@@ -76,3 +76,35 @@ class CrossValidateSaveSerializer(serializers.Serializer):
     split_ratio = serializers.FloatField(required=False, min_value=0.1, max_value=0.9)
     random_seed = serializers.IntegerField(required=False)
     set_as_default = serializers.BooleanField(default=False)
+
+
+class CurrentCategorySerializer(serializers.Serializer):
+    id = serializers.IntegerField(allow_null=True)
+    name = serializers.CharField(allow_null=True)
+
+
+class RecategorizeSuggestionSerializer(serializers.Serializer):
+    transaction = TransactionSerializer()
+    current_category = CurrentCategorySerializer()
+    suggested_category = SuggestionSerializer()
+
+
+class RecategorizeItemSerializer(serializers.Serializer):
+    transaction = serializers.PrimaryKeyRelatedField(queryset=Transaction.objects.all())
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+
+
+class ApplyRecategorizeSerializer(serializers.Serializer):
+    updates = RecategorizeItemSerializer(many=True)
+
+    def validate_updates(self, value):
+        if len(value) == 0:
+            raise serializers.ValidationError("At least one update is required.")
+        if len(value) > 500:
+            raise serializers.ValidationError("Maximum 500 updates per request.")
+
+        transaction_pks = [item['transaction'].pk for item in value]
+        if len(transaction_pks) != len(set(transaction_pks)):
+            raise serializers.ValidationError("Duplicate transactions are not allowed.")
+
+        return value
