@@ -340,10 +340,19 @@ class CategorisorViewSet(viewsets.ModelViewSet):
     @decorators.action(detail=True, methods=["get"], serializer_class=DateRangeSerializer)
     def preview_recategorize(self, request, pk=None):
         transactions, clf = self._get_date_range_and_clf(request, is_split=False)
+        category_map = {c.name: c for c in Category.objects.all()}
         changes = []
 
         for trans in transactions:
-            suggested = trans.suggest_category(clf)
+            if not trans.description:
+                continue
+            predictions = clf.predict(trans.description)
+            suggested = [
+                {'name': name, 'id': category_map[name].id,
+                 'score': int(round(score * 100.0, 0))}
+                for name, score in predictions.items()
+                if name in category_map
+            ]
             if not suggested:
                 continue
             top = suggested[0]

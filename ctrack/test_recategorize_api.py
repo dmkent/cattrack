@@ -96,7 +96,7 @@ class PreviewRecategorizeTestCase(APITestCase):
 
         self.categorisor = models.CategorisorModel.objects.create(
             name="test",
-            implementation="sklearn",
+            implementation="SklearnCategoriser",
             from_date="2025-01-01",
             to_date="2026-12-31",
             model=b"dummy",
@@ -208,6 +208,28 @@ class PreviewRecategorizeTestCase(APITestCase):
         ]
         self.assertNotIn("Coffee Shop Outside Range", descriptions)
 
+    @patch.object(models.CategorisorModel, "clf_model")
+    def test_preview_skips_null_description(self, mock_clf):
+        mock_clf.return_value = make_mock_classifier(self.prediction_map)
+
+        models.Transaction.objects.create(
+            when=datetime(2026, 1, 19, 12, 0, tzinfo=pytz.utc),
+            account=self.account,
+            amount=15.00,
+            category=self.cat_food,
+            description=None,
+        )
+
+        response = self.client.get(
+            self.url, {"from_date": "2026-01-01", "to_date": "2026-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Should not crash and null-description transaction should not appear
+        transaction_ids = [r["transaction"]["id"] for r in response.data["results"]]
+        null_desc_trans = models.Transaction.objects.get(description=None)
+        self.assertNotIn(null_desc_trans.pk, transaction_ids)
+
     def test_preview_requires_authentication(self):
         self.client.force_authenticate(user=None)
         response = self.client.get(
@@ -253,7 +275,7 @@ class ApplyRecategorizeTestCase(APITestCase):
 
         self.categorisor = models.CategorisorModel.objects.create(
             name="test",
-            implementation="sklearn",
+            implementation="SklearnCategoriser",
             from_date="2025-01-01",
             to_date="2026-12-31",
             model=b"dummy",
@@ -316,6 +338,19 @@ class ApplyRecategorizeTestCase(APITestCase):
         response = self.client.post(
             self.url,
             {"updates": [{"transaction": self.trans1.pk, "category": 99999}]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_apply_duplicate_transactions_rejected(self):
+        response = self.client.post(
+            self.url,
+            {
+                "updates": [
+                    {"transaction": self.trans1.pk, "category": self.cat_caffeine.pk},
+                    {"transaction": self.trans1.pk, "category": self.cat_food.pk},
+                ]
+            },
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

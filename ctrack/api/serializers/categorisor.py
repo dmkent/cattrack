@@ -102,4 +102,9 @@ class ApplyRecategorizeSerializer(serializers.Serializer):
             raise serializers.ValidationError("At least one update is required.")
         if len(value) > 500:
             raise serializers.ValidationError("Maximum 500 updates per request.")
+
+        transaction_pks = [item['transaction'].pk for item in value]
+        if len(transaction_pks) != len(set(transaction_pks)):
+            raise serializers.ValidationError("Duplicate transactions are not allowed.")
+
         return value
