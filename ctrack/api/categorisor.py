@@ -8,11 +8,12 @@ import random
 from django.utils import timezone
 from rest_framework import decorators, status, response, viewsets
 from ctrack.api.serializers.categorisor import (
-    CategorisorSerializer, CreateCategorisor, ValidateSerializer,
-    ValidationResponseSerializer, CrossValidateSerializer,
-    CrossValidationErrorSerializer, CrossValidationResponseSerializer,
-    CrossValidateSaveSerializer,
+    ApplyRecategorizeSerializer, CategorisorSerializer, CreateCategorisor,
+    CrossValidateSerializer, CrossValidationErrorSerializer,
+    CrossValidationResponseSerializer, CrossValidateSaveSerializer,
+    DateRangeSerializer, RecategorizeSuggestionSerializer, ValidationResponseSerializer,
 )
+from ctrack.api.transactions import PageNumberSettablePagination
 from ctrack.categories import CategoriserFactory
 from ctrack.models import Category, CategorisorModel, Transaction, UserSettings
 
@@ -110,21 +111,24 @@ class CategorisorViewSet(viewsets.ModelViewSet):
 
         return response.Response("ok")
 
-    @decorators.action(detail=True, methods=["get"], serializer_class=ValidateSerializer)
-    def validate(self, request, pk=None):
+    def _get_date_range_and_clf(self, request, **extra_filters):
+        """Parse date range from query params, query transactions, and load classifier."""
         categorisor = self.get_object()
         serializer = self.get_serializer(data=request.query_params)
-
         serializer.is_valid(raise_exception=True)
 
         from_date = datetime.combine(serializer.validated_data['from_date'], time(), timezone.get_current_timezone())
         to_date = datetime.combine(serializer.validated_data['to_date'], time.max, timezone.get_current_timezone())
 
-        transactions = Transaction.objects.filter(
-                when__gte=from_date,
-                when__lte=to_date,
-            )
+        transactions = Transaction.objects.select_related('category').filter(
+            when__gte=from_date, when__lte=to_date, **extra_filters,
+        )
         clf = categorisor.clf_model()
+        return transactions, clf
+
+    @decorators.action(detail=True, methods=["get"], serializer_class=DateRangeSerializer)
+    def validate(self, request, pk=None):
+        transactions, clf = self._get_date_range_and_clf(request)
 
         count = 0
         matched = 0
@@ -332,3 +336,46 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             "detail": "Model set as default.",
             "categorisor": CategorisorSerializer(categorisor, context={'request': request}).data,
         })
+
+    @decorators.action(detail=True, methods=["get"], serializer_class=DateRangeSerializer)
+    def preview_recategorize(self, request, pk=None):
+        transactions, clf = self._get_date_range_and_clf(request, is_split=False)
+        changes = []
+
+        for trans in transactions:
+            suggested = trans.suggest_category(clf)
+            if not suggested:
+                continue
+            top = suggested[0]
+            if top['id'] != trans.category_id:
+                changes.append({
+                    "transaction": trans,
+                    "current_category": {
+                        "id": trans.category_id,
+                        "name": trans.category.name if trans.category else None,
+                    },
+                    "suggested_category": top,
+                })
+
+        paginator = PageNumberSettablePagination()
+        page = paginator.paginate_queryset(changes, request)
+        result = RecategorizeSuggestionSerializer(
+            page, many=True, context={'request': request}
+        )
+        return paginator.get_paginated_response(result.data)
+
+    @decorators.action(detail=True, methods=["post"], serializer_class=ApplyRecategorizeSerializer)
+    def apply_recategorize(self, request, pk=None):
+        self.get_object()
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updates = serializer.validated_data['updates']
+        transactions = []
+        for item in updates:
+            item['transaction'].category = item['category']
+            transactions.append(item['transaction'])
+        Transaction.objects.bulk_update(transactions, ['category'])
+
+        return response.Response({"updated_count": len(updates)})
