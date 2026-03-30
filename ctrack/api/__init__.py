@@ -11,6 +11,7 @@ from ctrack.api.categorisor import CategorisorViewSet
 from ctrack.api.period_definition import PeriodDefinitionView
 from ctrack.api.recurring_payment import BillViewSet, RecurringPaymentViewSet
 from ctrack.api.transactions import TransactionViewSet
+from ctrack.api.user_settings import UserSettingsViewSet
 
 
 router = routers.DefaultRouter()
@@ -22,6 +23,7 @@ router.register(r'transactions', TransactionViewSet)
 router.register(r'payments', RecurringPaymentViewSet)
 router.register(r'bills', BillViewSet)
 router.register(r'budget', BudgetEntryViewSet)
+router.register(r'user-settings', UserSettingsViewSet, basename='usersettings')
 urls = [
     re_path(r'^transactions/(?P<pk>[0-9]+)/suggest$', SuggestCategories.as_view()),
     re_path(r'^categories/summary/(?P<from>[0-9]+)/(?P<to>[0-9]+)$', CategorySummary.as_view()),
