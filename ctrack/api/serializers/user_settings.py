@@ -4,7 +4,7 @@ from rest_framework import serializers
 from ctrack.models import UserSettings, CategorisorModel
 
 
-class UserSettingsSerializer(serializers.HyperlinkedModelSerializer):
+class UserSettingsSerializer(serializers.ModelSerializer):
     selected_categorisor = serializers.PrimaryKeyRelatedField(
         queryset=CategorisorModel.objects.all(),
         required=False,
@@ -13,7 +13,7 @@ class UserSettingsSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = UserSettings
-        fields = ('url', 'id', 'selected_categorisor')
+        fields = ('id', 'selected_categorisor')
 
     def validate(self, attrs):
         """Ensure enable_db_categorisors is disabled when selected_categorisor is cleared.

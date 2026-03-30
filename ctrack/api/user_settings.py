@@ -1,38 +1,30 @@
 """ctrack REST API - UserSettings ViewSet
 """
-from rest_framework import viewsets, mixins
-from rest_framework.exceptions import NotFound
+from rest_framework import decorators, response, status, viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from ctrack.models import UserSettings
 from ctrack.api.serializers.user_settings import UserSettingsSerializer
 
 
-class UserSettingsViewSet(mixins.RetrieveModelMixin,
-                          mixins.UpdateModelMixin,
-                          viewsets.GenericViewSet):
+class UserSettingsViewSet(viewsets.GenericViewSet):
     serializer_class = UserSettingsSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """Return only the current user's settings."""
-        return UserSettings.objects.filter(user=self.request.user)
-
-    def get_object(self):
-        """Get or create the settings object for the current user.
-
-        Also validates that any pk provided in the URL matches the
-        current user's settings, returning 404 if it does not.
-        """
+    def _get_or_create_settings(self):
         obj, created = UserSettings.objects.get_or_create(user=self.request.user)
         self.check_object_permissions(self.request, obj)
-        pk = self.kwargs.get('pk')
-        if pk is not None and str(obj.pk) != str(pk):
-            raise NotFound()
         return obj
 
-    def list(self, request, *args, **kwargs):
-        """Return the current user's settings as a single object."""
-        obj, created = UserSettings.objects.get_or_create(user=request.user)
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
+    @decorators.action(detail=False, methods=['get', 'put', 'patch'], url_path='me')
+    def me(self, request):
+        obj = self._get_or_create_settings()
+
+        if request.method == 'GET':
+            serializer = self.get_serializer(obj)
+            return response.Response(serializer.data)
+
+        partial = request.method == 'PATCH'
+        serializer = self.get_serializer(obj, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return response.Response(serializer.data, status=status.HTTP_200_OK)

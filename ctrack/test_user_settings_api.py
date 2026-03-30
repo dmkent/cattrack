@@ -15,14 +15,14 @@ class UserSettingsAPITestCase(APITestCase):
 
     def test_get_user_settings_unauthenticated(self):
         """Test that unauthenticated requests are rejected"""
-        response = self.client.get('/api/user-settings/')
+        response = self.client.get('/api/user-settings/me/')
         # Should get either 401 UNAUTHORIZED or 403 FORBIDDEN due to DRF authentication/permission checks
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
     def test_get_user_settings_authenticated(self):
         """Test that authenticated users can retrieve their settings"""
         self.client.force_authenticate(user=self.user)
-        response = self.client.get('/api/user-settings/')
+        response = self.client.get('/api/user-settings/me/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Should return a single object (dict), not a list
         self.assertIsInstance(response.data, dict)
@@ -34,7 +34,7 @@ class UserSettingsAPITestCase(APITestCase):
         UserSettings.objects.create(user=user2)
 
         self.client.force_authenticate(user=self.user)
-        response = self.client.get('/api/user-settings/')
+        response = self.client.get('/api/user-settings/me/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Should return single object with id matching self.settings
         self.assertEqual(response.data['id'], self.settings.id)
@@ -43,15 +43,14 @@ class UserSettingsAPITestCase(APITestCase):
         """Test that users can update their settings"""
         self.client.force_authenticate(user=self.user)
 
-        # Get the current settings ID from list endpoint
-        get_response = self.client.get('/api/user-settings/')
+        # Get current settings via me endpoint
+        get_response = self.client.get('/api/user-settings/me/')
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
-        settings_id = get_response.data['id']
 
-        # Patch the settings via detail endpoint using JSON format
+        # Patch settings via me endpoint using JSON format
         patch_data = {'selected_categorisor': None}
         patch_response = self.client.patch(
-            f'/api/user-settings/{settings_id}/',
+            '/api/user-settings/me/',
             patch_data,
             format='json'
         )
@@ -64,32 +63,27 @@ class UserSettingsAPITestCase(APITestCase):
         self.assertFalse(UserSettings.objects.filter(user=user_no_settings).exists())
 
         self.client.force_authenticate(user=user_no_settings)
-        response = self.client.get('/api/user-settings/')
+        response = self.client.get('/api/user-settings/me/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, dict)
         self.assertIn('selected_categorisor', response.data)
         # Verify it was created in the DB
         self.assertTrue(UserSettings.objects.filter(user=user_no_settings).exists())
 
-    def test_post_not_allowed(self):
-        """Test that POST is not allowed (settings are auto-created)"""
+    def test_post_not_allowed_on_me(self):
+        """Test that POST is not allowed on the me endpoint"""
         self.client.force_authenticate(user=self.user)
-        response = self.client.post('/api/user-settings/', {}, format='json')
+        response = self.client.post('/api/user-settings/me/', {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def test_delete_not_allowed(self):
-        """Test that DELETE is not allowed on user settings"""
+    def test_delete_not_allowed_on_me(self):
+        """Test that DELETE is not allowed on the me endpoint"""
         self.client.force_authenticate(user=self.user)
-        settings_id = self.settings.id
-        response = self.client.delete(f'/api/user-settings/{settings_id}/')
+        response = self.client.delete('/api/user-settings/me/')
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def test_patch_wrong_pk_returns_404(self):
-        """Test that PATCH with a pk not matching the user's settings returns 404"""
+    def test_list_route_not_exposed(self):
+        """Test that /api/user-settings/ is not exposed"""
         self.client.force_authenticate(user=self.user)
-        response = self.client.patch(
-            '/api/user-settings/99999/',
-            {'selected_categorisor': None},
-            format='json'
-        )
+        response = self.client.get('/api/user-settings/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
