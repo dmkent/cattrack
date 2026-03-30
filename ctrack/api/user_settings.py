@@ -10,6 +10,13 @@ class UserSettingsViewSet(viewsets.GenericViewSet):
     serializer_class = UserSettingsSerializer
     permission_classes = [IsAuthenticated]
 
+    def list(self, request, *args, **kwargs):
+        """Discovery endpoint for browsable API root.
+
+        Returns a link to the self-scoped settings endpoint.
+        """
+        return response.Response({'me': self.reverse_action('me')})
+
     def _get_or_create_settings(self):
         obj, created = UserSettings.objects.get_or_create(user=self.request.user)
         self.check_object_permissions(self.request, obj)

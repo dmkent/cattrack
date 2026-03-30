@@ -82,8 +82,10 @@ class UserSettingsAPITestCase(APITestCase):
         response = self.client.delete('/api/user-settings/me/')
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def test_list_route_not_exposed(self):
-        """Test that /api/user-settings/ is not exposed"""
+    def test_list_route_exposes_me_link_only(self):
+        """Test that /api/user-settings/ is discovery-only and points to /me"""
         self.client.force_authenticate(user=self.user)
         response = self.client.get('/api/user-settings/')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('me', response.data)
+        self.assertTrue(response.data['me'].endswith('/api/user-settings/me/'))
