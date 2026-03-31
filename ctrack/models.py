@@ -139,7 +139,7 @@ class Account(models.Model):
         return series
 
     @property
-    def balance(self):
+    def balance(self) -> float | None:
         """Get the latest balance for the account."""
         try:
             return self.daily_balance().iloc[-1]
@@ -292,7 +292,7 @@ class Bill(models.Model):
     series = models.ForeignKey('RecurringPayment', models.CASCADE, related_name="bills")
 
     @property
-    def is_paid(self):
+    def is_paid(self) -> bool:
         return self.paying_transactions.aggregate(total=models.Sum('amount'))['total'] == -self.due_amount
 
     def __str__(self):
@@ -318,7 +318,7 @@ class RecurringPayment(models.Model):
             return pd.Series()
         return pd.Series(arr[:, 1], index=pd.DatetimeIndex(arr[:, 0])).astype(float)
 
-    def next_due_date(self):
+    def next_due_date(self) -> date | None:
         """Calculate the due date of the next bill."""
         data = self.bills_as_series()
         if len(data) == 0:
@@ -453,7 +453,7 @@ class BudgetEntry(models.Model):
         return ", ".join(names)
 
     @property
-    def pretty_name(self):
+    def pretty_name(self) -> str:
         if self.name:
             return self.name
         return self.name_from_categories()

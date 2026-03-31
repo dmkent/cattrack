@@ -1,8 +1,8 @@
-"""ctrack REST API
-"""
+"""ctrack REST API"""
+
 import logging
 
-from rest_framework import (response, serializers, views)
+from rest_framework import response, serializers, views
 from ctrack.models import PeriodDefinition
 
 
@@ -20,8 +20,10 @@ class PeriodDefinitionSerializer(serializers.Serializer):
 
 class PeriodDefinitionView(views.APIView):
     queryset = PeriodDefinition.objects.all()
+    serializer_class = PeriodDefinitionSerializer
 
     def get(self, formats=None):
-        data = sum((period.option_specifiers
-                    for period in PeriodDefinition.objects.all()), [])
+        data = sum(
+            (period.option_specifiers for period in PeriodDefinition.objects.all()), []
+        )
         return response.Response(data)
