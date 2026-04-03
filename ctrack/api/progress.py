@@ -103,26 +103,34 @@ class ProgressView(views.APIView):
         for entry in budget_entries:
             budget_amount = entry.amount_over_period(from_date, to_date)
             cat_pks = set(entry.categories.values_list("pk", flat=True))
+            n_cats = len(cat_pks)
             budgeted_category_pks |= cat_pks
 
             if group_by == "category_group":
                 # Map budget to groups that contain any of the entry's categories
-                for group in CategoryGroup.objects.filter(categories__in=cat_pks).distinct():
+                matching_groups = list(
+                    CategoryGroup.objects.filter(categories__in=cat_pks).distinct()
+                )
+                n_groups = len(matching_groups) or 1
+                per_group_amount = Decimal(str(budget_amount)) / n_groups
+                for group in matching_groups:
                     budget_map.setdefault(group.pk, Decimal("0"))
-                    budget_map[group.pk] += Decimal(str(budget_amount))
+                    budget_map[group.pk] += per_group_amount
                     for cpk in cat_pks:
                         category_to_row[cpk] = group.pk
             else:
+                # Pro-rate across categories so the total isn't duplicated
+                per_cat_amount = Decimal(str(budget_amount)) / (n_cats or 1)
                 for cpk in cat_pks:
                     budget_map.setdefault(cpk, Decimal("0"))
-                    budget_map[cpk] += Decimal(str(budget_amount))
+                    budget_map[cpk] += per_cat_amount
                     category_to_row[cpk] = cpk
 
         # ------------------------------------------------------------------
         # Step 4 — Expected remaining spend
         # ------------------------------------------------------------------
         remaining_start = max(today + timedelta(days=1), from_date)
-        remaining_days = (to_date - today).days if today < to_date else 0
+        remaining_days = (to_date - remaining_start).days + 1 if remaining_start <= to_date else 0
 
         expected_remaining_map = {}
 
@@ -133,17 +141,24 @@ class ProgressView(views.APIView):
                     str(entry.amount_over_period(remaining_start, to_date))
                 )
                 cat_pks = set(entry.categories.values_list("pk", flat=True))
+                n_cats = len(cat_pks)
 
                 if group_by == "category_group":
-                    for group in CategoryGroup.objects.filter(
-                        categories__in=cat_pks
-                    ).distinct():
+                    matching_groups = list(
+                        CategoryGroup.objects.filter(
+                            categories__in=cat_pks
+                        ).distinct()
+                    )
+                    n_groups = len(matching_groups) or 1
+                    per_group_amount = remaining_amount / n_groups
+                    for group in matching_groups:
                         expected_remaining_map.setdefault(group.pk, Decimal("0"))
-                        expected_remaining_map[group.pk] += remaining_amount
+                        expected_remaining_map[group.pk] += per_group_amount
                 else:
+                    per_cat_amount = remaining_amount / (n_cats or 1)
                     for cpk in cat_pks:
                         expected_remaining_map.setdefault(cpk, Decimal("0"))
-                        expected_remaining_map[cpk] += remaining_amount
+                        expected_remaining_map[cpk] += per_cat_amount
 
             # Historical average fallback for categories WITHOUT a budget
             lookback_start = from_date - timedelta(days=90)
@@ -240,6 +255,9 @@ class ProgressView(views.APIView):
             expected_remaining_map.keys()
         ) | set(upcoming_map.keys())
 
+        # Remove None keys (uncategorised transactions)
+        all_ids.discard(None)
+
         # Build a name lookup
         if group_by == "category_group":
             name_lookup = dict(
@@ -298,7 +316,13 @@ class ProgressView(views.APIView):
         raw_from = request.query_params.get("from_date")
         raw_to = request.query_params.get("to_date")
         if raw_from and raw_to:
-            return parse_date(raw_from), parse_date(raw_to), "Custom"
+            parsed_from = parse_date(raw_from)
+            parsed_to = parse_date(raw_to)
+            if parsed_from is None or parsed_to is None:
+                return None, None, None
+            if parsed_from > parsed_to:
+                return None, None, None
+            return parsed_from, parsed_to, "Custom"
 
         period = request.query_params.get("period")
         if not period:
@@ -336,10 +360,14 @@ class ProgressView(views.APIView):
 
     @staticmethod
     def _spend_by_category(from_date, to_date):
-        """Return {category_pk: Decimal spend} for the period."""
+        """Return {category_pk: Decimal spend} for the period.
+
+        Excludes uncategorised transactions (category=NULL).
+        """
         qs = (
             Transaction.objects.filter(
-                when__gte=from_date, when__lte=to_date, is_split=False
+                when__gte=from_date, when__lte=to_date,
+                is_split=False, category__isnull=False,
             )
             .values("category", "category__name")
             .annotate(actual_spend=Sum("amount"))
@@ -348,17 +376,26 @@ class ProgressView(views.APIView):
 
     @staticmethod
     def _spend_by_category_group(from_date, to_date):
-        """Return {group_pk: Decimal spend} for the period."""
+        """Return {group_pk: Decimal spend} for the period.
+
+        Uses a single query with annotation instead of N+1 per-group queries.
+        """
+        # Fetch all transactions in the period, grouped by category
+        cat_totals = dict(
+            Transaction.objects.filter(
+                when__gte=from_date, when__lte=to_date,
+                is_split=False, category__isnull=False,
+            )
+            .values_list("category")
+            .annotate(total=Sum("amount"))
+        )
+
+        # Map category totals to groups
         spend_map = {}
-        for group in CategoryGroup.objects.all():
-            total = (
-                Transaction.objects.filter(
-                    when__gte=from_date,
-                    when__lte=to_date,
-                    is_split=False,
-                    category__in=group.categories.all(),
-                ).aggregate(total=Sum("amount"))["total"]
-                or Decimal("0")
+        for group in CategoryGroup.objects.prefetch_related("categories").all():
+            total = sum(
+                cat_totals.get(cat_pk, Decimal("0"))
+                for cat_pk in group.categories.values_list("pk", flat=True)
             )
             if total:
                 spend_map[group.pk] = total

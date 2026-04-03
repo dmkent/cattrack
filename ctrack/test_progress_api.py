@@ -74,28 +74,28 @@ class ProgressAPITestCase(APITestCase):
         self.tx1 = models.Transaction.objects.create(
             when=datetime(today.year, today.month, 1, 10, 0, tzinfo=pytz.utc),
             account=self.account,
-            amount=Decimal("45.50"),
+            amount=Decimal("-45.50"),
             category=self.groceries,
             description="Supermarket",
         )
         self.tx2 = models.Transaction.objects.create(
             when=datetime(today.year, today.month, 2, 14, 0, tzinfo=pytz.utc),
             account=self.account,
-            amount=Decimal("30.00"),
+            amount=Decimal("-30.00"),
             category=self.groceries,
             description="Farmers market",
         )
         self.tx3 = models.Transaction.objects.create(
             when=datetime(today.year, today.month, 3, 9, 0, tzinfo=pytz.utc),
             account=self.account,
-            amount=Decimal("120.00"),
+            amount=Decimal("-120.00"),
             category=self.bills_power,
             description="Power bill",
         )
         self.tx4 = models.Transaction.objects.create(
             when=datetime(today.year, today.month, 1, 20, 0, tzinfo=pytz.utc),
             account=self.account,
-            amount=Decimal("15.00"),
+            amount=Decimal("-15.00"),
             category=self.entertainment,
             description="Movie ticket",
         )
@@ -191,25 +191,25 @@ class ProgressAPITestCase(APITestCase):
 
         rows_by_name = {r["name"]: r for r in response.data["rows"]}
 
-        # Groceries: 45.50 + 30.00 = 75.50
+        # Groceries: -45.50 + -30.00 = -75.50
         self.assertIn("Groceries", rows_by_name)
         self.assertEqual(
             Decimal(rows_by_name["Groceries"]["actual_spend"]),
-            Decimal("75.50"),
+            Decimal("-75.50"),
         )
 
-        # Bills - Power: 120.00
+        # Bills - Power: -120.00
         self.assertIn("Bills - Power", rows_by_name)
         self.assertEqual(
             Decimal(rows_by_name["Bills - Power"]["actual_spend"]),
-            Decimal("120.00"),
+            Decimal("-120.00"),
         )
 
-        # Entertainment: 15.00
+        # Entertainment: -15.00
         self.assertIn("Entertainment", rows_by_name)
         self.assertEqual(
             Decimal(rows_by_name["Entertainment"]["actual_spend"]),
-            Decimal("15.00"),
+            Decimal("-15.00"),
         )
 
     # ------------------------------------------------------------------
@@ -225,11 +225,11 @@ class ProgressAPITestCase(APITestCase):
 
         rows_by_name = {r["name"]: r for r in response.data["rows"]}
 
-        # Food group contains Groceries: 45.50 + 30.00 = 75.50
+        # Food group contains Groceries: -45.50 + -30.00 = -75.50
         self.assertIn("Food", rows_by_name)
         self.assertEqual(
             Decimal(rows_by_name["Food"]["actual_spend"]),
-            Decimal("75.50"),
+            Decimal("-75.50"),
         )
 
     # ------------------------------------------------------------------
@@ -264,7 +264,7 @@ class ProgressAPITestCase(APITestCase):
         models.Transaction.objects.create(
             when=datetime(today.year, today.month, 4, 12, 0, tzinfo=pytz.utc),
             account=self.account,
-            amount=Decimal("200.00"),
+            amount=Decimal("-200.00"),
             category=self.groceries,
             description="Split parent",
             is_split=True,
@@ -274,10 +274,10 @@ class ProgressAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         rows_by_name = {r["name"]: r for r in response.data["rows"]}
-        # Should still be 75.50, the split transaction excluded
+        # Should still be -75.50, the split transaction excluded
         self.assertEqual(
             Decimal(rows_by_name["Groceries"]["actual_spend"]),
-            Decimal("75.50"),
+            Decimal("-75.50"),
         )
 
     # ------------------------------------------------------------------

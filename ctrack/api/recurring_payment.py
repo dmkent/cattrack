@@ -8,6 +8,7 @@ from ctrack.api.serializers.recurring_detection import (
     DetectRecurringRequestSerializer,
     DetectRecurringResponseSerializer,
 )
+from django.db import transaction as db_transaction
 from ctrack.models import (Bill, RecurringPayment, Transaction)
 from ctrack.recurring_detection import RecurringTransactionDetector
 from django_filters import rest_framework as filters
@@ -80,7 +81,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
         detector = RecurringTransactionDetector(
             min_cluster_size=serializer.validated_data.get('min_cluster_size', 3),
             interval_cv_threshold=serializer.validated_data.get('interval_cv_threshold', 0.35),
-            similarity_threshold=serializer.validated_data.get('similarity_threshold', 0.4),
+            cosine_distance_threshold=serializer.validated_data.get('cosine_distance_threshold', 0.4),
         )
         groups = detector.detect(qs)
 
@@ -98,35 +99,42 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
         serializer = CreateFromDetectionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        created_payments = []
+        # Validate all transaction IDs upfront before creating anything
         for group_data in serializer.validated_data['groups']:
             tx_ids = group_data['transaction_ids']
-            transactions = Transaction.objects.filter(id__in=tx_ids).order_by('when')
-
-            if transactions.count() != len(tx_ids):
-                found_ids = set(transactions.values_list('id', flat=True))
+            found_count = Transaction.objects.filter(id__in=tx_ids).count()
+            if found_count != len(tx_ids):
+                found_ids = set(Transaction.objects.filter(id__in=tx_ids).values_list('id', flat=True))
                 missing = set(tx_ids) - found_ids
                 return response.Response(
                     {"detail": f"Transaction IDs not found: {sorted(missing)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            payment = RecurringPayment.objects.create(
-                name=group_data['name'],
-                is_income=group_data.get('is_income', False),
-                category=group_data.get('category'),
-            )
+        created_payments = []
+        with db_transaction.atomic():
+            for group_data in serializer.validated_data['groups']:
+                tx_ids = group_data['transaction_ids']
+                transactions = Transaction.objects.filter(id__in=tx_ids).order_by('when')
 
-            for txn in transactions:
-                bill = Bill.objects.create(
-                    description=txn.description or payment.name,
-                    due_date=txn.when.date(),
-                    due_amount=abs(txn.amount),
-                    series=payment,
+                payment = RecurringPayment.objects.create(
+                    name=group_data['name'],
+                    is_income=group_data.get('is_income', False),
+                    category=group_data.get('category'),
                 )
-                bill.paying_transactions.add(txn)
 
-            created_payments.append(payment)
+                for txn in transactions:
+                    # Bill.description has max_length=100; truncate if needed
+                    desc = (txn.description or payment.name)[:100]
+                    bill = Bill.objects.create(
+                        description=desc,
+                        due_date=txn.when.date(),
+                        due_amount=abs(txn.amount),
+                        series=payment,
+                    )
+                    bill.paying_transactions.add(txn)
+
+                created_payments.append(payment)
 
         result = RecurringPaymentSerializer(
             created_payments, many=True, context={'request': request}

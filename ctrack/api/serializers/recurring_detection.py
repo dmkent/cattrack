@@ -9,7 +9,7 @@ class DetectRecurringRequestSerializer(serializers.Serializer):
     to_date = serializers.DateField()
     min_cluster_size = serializers.IntegerField(default=3, min_value=2, max_value=20)
     interval_cv_threshold = serializers.FloatField(default=0.35, min_value=0.1, max_value=1.0)
-    similarity_threshold = serializers.FloatField(default=0.4, min_value=0.1, max_value=0.9)
+    cosine_distance_threshold = serializers.FloatField(default=0.4, min_value=0.1, max_value=0.9)
     account = serializers.PrimaryKeyRelatedField(
         queryset=Account.objects.all(), required=False
     )

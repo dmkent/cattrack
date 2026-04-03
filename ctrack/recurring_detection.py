@@ -29,10 +29,13 @@ class RecurringTransactionDetector:
     ]
 
     def __init__(self, min_cluster_size=3, interval_cv_threshold=0.35,
-                 similarity_threshold=0.4):
+                 cosine_distance_threshold=0.4, **kwargs):
         self.min_cluster_size = min_cluster_size
         self.interval_cv_threshold = interval_cv_threshold
-        self.similarity_threshold = similarity_threshold
+        # Accept legacy 'similarity_threshold' kwarg for backwards compat
+        self.cosine_distance_threshold = kwargs.get(
+            'similarity_threshold', cosine_distance_threshold
+        )
 
     def _classify_frequency(self, mean_days):
         """Classify a mean interval in days to a frequency label."""
@@ -108,14 +111,15 @@ class RecurringTransactionDetector:
             return []
 
         # Step 2: DBSCAN clustering with cosine metric
-        # DBSCAN may need dense matrix for cosine metric
-        matrix = tfidf_matrix.toarray()
+        # sklearn DBSCAN supports precomputed distance matrices for sparse input
+        from sklearn.metrics.pairwise import cosine_distances
+        dist_matrix = cosine_distances(tfidf_matrix)
         clustering = DBSCAN(
-            eps=self.similarity_threshold,
+            eps=self.cosine_distance_threshold,
             min_samples=self.min_cluster_size,
-            metric='cosine',
+            metric='precomputed',
         )
-        labels = clustering.fit_predict(matrix)
+        labels = clustering.fit_predict(dist_matrix)
 
         # Step 3: Analyze each cluster
         groups = []
