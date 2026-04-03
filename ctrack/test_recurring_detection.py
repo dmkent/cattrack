@@ -208,3 +208,56 @@ class RecurringTransactionDetectorTestCase(TestCase):
         groups = self.detector.detect(qs)
 
         self.assertEqual(groups, [])
+
+    def test_interleaved_amount_series(self):
+        """Two payment series with the same description but different amounts
+        should be detected as separate recurring groups.
+
+        This models the real-world case where a gym bills two memberships
+        with the same payee description but different amounts on the same dates.
+        """
+        desc = "EZI*Kieser Training Ge South Melbour"
+        base = self.base_date
+
+        # Series A: ~$113 fortnightly
+        for i in range(12):
+            models.Transaction.objects.create(
+                when=base + timedelta(days=i * 14),
+                account=self.account,
+                amount=Decimal("-113.07"),
+                description=desc,
+                category=self.cat_entertainment,
+            )
+
+        # Series B: ~$100 fortnightly, same dates
+        for i in range(12):
+            models.Transaction.objects.create(
+                when=base + timedelta(days=i * 14),
+                account=self.account,
+                amount=Decimal("-100.20"),
+                description=desc,
+                category=self.cat_entertainment,
+            )
+
+        qs = models.Transaction.objects.filter(
+            is_split=False, description__isnull=False
+        ).exclude(description="")
+        groups = self.detector.detect(qs)
+
+        # Should detect two separate groups, not one mixed group
+        self.assertGreaterEqual(len(groups), 2,
+            f"Expected 2+ groups but got {len(groups)}: "
+            f"{[(g['amount_mean'], g['transaction_count']) for g in groups]}"
+        )
+
+        # Verify the groups have distinct amount ranges
+        amount_means = sorted([abs(g['amount_mean']) for g in groups])
+        self.assertGreater(amount_means[-1] - amount_means[0], 5.0,
+            "Groups should have meaningfully different mean amounts"
+        )
+
+        # Each group should be regular (fortnightly)
+        for g in groups:
+            self.assertEqual(g['frequency'], 'fortnightly',
+                f"Group with mean {g['amount_mean']} has frequency {g['frequency']}"
+            )

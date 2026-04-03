@@ -82,6 +82,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
             min_cluster_size=serializer.validated_data.get('min_cluster_size', 3),
             interval_cv_threshold=serializer.validated_data.get('interval_cv_threshold', 0.35),
             cosine_distance_threshold=serializer.validated_data.get('cosine_distance_threshold', 0.4),
+            amount_tolerance=serializer.validated_data.get('amount_tolerance', 0.10),
         )
         groups = detector.detect(qs)
 
