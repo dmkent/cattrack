@@ -310,6 +310,7 @@ class RecurringPayment(models.Model):
     """A recurring bill series."""
     name = models.CharField(max_length=100)
     is_income = models.BooleanField(default=False)
+    category = models.ForeignKey('Category', null=True, blank=True, on_delete=models.SET_NULL)
 
     def bills_as_series(self):
         """Convert related Bill objects to time series."""
