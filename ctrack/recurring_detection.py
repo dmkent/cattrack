@@ -106,6 +106,30 @@ class RecurringTransactionDetector:
 
         return result
 
+    def _is_regular(self, txs):
+        """Quick regularity check on a group of transactions.
+
+        Returns True if the group's interval CV is within the threshold,
+        meaning it already has a clear periodic pattern.
+        """
+        sorted_txs = sorted(txs, key=lambda t: t['when'])
+        dates = [t['when'] for t in sorted_txs]
+        if len(dates) < 2:
+            return False
+
+        intervals = []
+        for i in range(1, len(dates)):
+            delta = (dates[i] - dates[i - 1]).total_seconds() / 86400
+            intervals.append(delta)
+
+        intervals = np.array(intervals)
+        mean_interval = np.mean(intervals)
+        if mean_interval == 0 or not np.isfinite(mean_interval):
+            return False
+
+        cv = np.std(intervals) / mean_interval
+        return cv <= self.interval_cv_threshold
+
     def _analyze_group(self, txs, cluster_id, sub_id=None):
         """Analyze a group of transactions for regularity and build result dict.
 
@@ -260,8 +284,13 @@ class RecurringTransactionDetector:
             cluster_indices = [i for i, lbl in enumerate(labels) if lbl == cluster_id]
             cluster_txs = [tx_data[i] for i in cluster_indices]
 
-            # Sub-group by amount to separate interleaved payment series
-            sub_groups = self._sub_group_by_amount(cluster_txs)
+            # Only sub-group by amount if the cluster doesn't already pass
+            # the regularity test as a whole. This avoids over-splitting
+            # series where the same payee has slight amount variations.
+            if self._is_regular(cluster_txs):
+                sub_groups = [cluster_txs]
+            else:
+                sub_groups = self._sub_group_by_amount(cluster_txs)
 
             for sub_id, sub_txs in enumerate(sub_groups):
                 if len(sub_txs) < self.min_cluster_size:
