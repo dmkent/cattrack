@@ -13,3 +13,5 @@ secretkey.txt
 docs/openapi-schema.yaml
 
 .env.*
+
+calibration_output/

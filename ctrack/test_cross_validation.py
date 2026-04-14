@@ -168,6 +168,72 @@ class CrossValidationAPITestCase(APITestCase):
             self.assertGreaterEqual(metric["precision"], 0.0)
             self.assertLessEqual(metric["precision"], 1.0)
 
+    def test_cross_validate_accepts_enhanced_parameters(self):
+        resp = self.client.post("/api/categorisor/cross_validate/", {
+            "from_date": "2026-01-01",
+            "to_date": "2026-01-31",
+            "split_ratio": 0.5,
+            "random_seed": 42,
+            "implementation": "EnhancedSklearnCategoriser",
+            "threshold": 0.55,
+            "margin": 0.10,
+            "min_df": 1,
+            "max_df": 1.0,
+            "alpha": 0.001,
+            "calibration_cv": 3,
+            "min_category_samples": 3,
+        })
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["status"], "ok")
+        self.assertIn("auto_precision", resp.data)
+        self.assertIn("coverage", resp.data)
+        self.assertIn("review_count", resp.data)
+        self.assertIn("excluded_categories", resp.data)
+
+    def test_cross_validate_excludes_sparse_categories(self):
+        rare = models.Category.objects.create(name="Rare")
+        for day in (29, 30):
+            models.Transaction.objects.create(
+                when=datetime(2026, 1, day, 12, 0, tzinfo=pytz.utc),
+                account=self.account,
+                amount=99.0,
+                category=rare,
+                description=f"Rare expense {day}",
+            )
+
+        resp = self.client.post("/api/categorisor/cross_validate/", {
+            "from_date": "2026-01-01",
+            "to_date": "2026-01-31",
+            "split_ratio": 0.5,
+            "random_seed": 42,
+            "implementation": "EnhancedSklearnCategoriser",
+            "min_category_samples": 3,
+            "calibration_cv": 3,
+        })
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["included_transaction_count"], 30)
+        self.assertEqual(resp.data["included_category_count"], 3)
+        self.assertEqual(resp.data["excluded_categories"], [{"category_name": "Rare", "count": 2}])
+
+    def test_cross_validate_comparison_mode_is_deterministic(self):
+        params = {
+            "from_date": "2026-01-01",
+            "to_date": "2026-01-31",
+            "split_ratio": 0.5,
+            "random_seed": 123,
+            "implementation": "EnhancedSklearnCategoriser",
+            "compare_against_baseline": True,
+            "calibration_cv": 3,
+        }
+
+        resp1 = self.client.post("/api/categorisor/cross_validate/", params)
+        resp2 = self.client.post("/api/categorisor/cross_validate/", params)
+
+        self.assertEqual(resp1.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp1.data["comparison"], resp2.data["comparison"])
+
 
 class CrossValidateSaveAPITestCase(APITestCase):
     """Test cross_validate_save and set_default endpoints."""
@@ -313,3 +379,27 @@ class CrossValidateSaveAPITestCase(APITestCase):
         settings = models.UserSettings.objects.get(user=self.user)
         self.assertEqual(settings.selected_categorisor_id, model_id)
         self.assertTrue(settings.enable_db_categorisors)
+
+    def test_save_enhanced_model_persists_training_metadata(self):
+        resp = self.client.post("/api/categorisor/cross_validate_save/", {
+            "name": "enhanced-model",
+            "from_date": "2026-01-01",
+            "to_date": "2026-01-31",
+            "recalibrate_full": False,
+            "split_ratio": 0.6,
+            "random_seed": 42,
+            "implementation": "EnhancedSklearnCategoriser",
+            "threshold": 0.55,
+            "margin": 0.10,
+            "calibration_cv": 3,
+            "min_category_samples": 2,
+        })
+
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        model = models.CategorisorModel.objects.get(name="enhanced-model")
+        self.assertEqual(model.training_config["implementation"], "EnhancedSklearnCategoriser")
+        self.assertEqual(model.training_config["threshold"], 0.55)
+        self.assertEqual(model.training_metrics["split_ratio"], 0.6)
+        self.assertEqual(model.training_metrics["random_seed"], 42)
+        self.assertIn("coverage", model.training_metrics)
+        self.assertIn("excluded_categories", model.exclusion_summary)

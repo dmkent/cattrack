@@ -27,6 +27,11 @@ class CategorisorViewSet(viewsets.ModelViewSet):
     queryset = CategorisorModel.objects.all().order_by('name')
     serializer_class = CategorisorSerializer
 
+    CATEGORISER_OPTION_KEYS = (
+        'threshold', 'margin', 'min_df', 'max_df', 'alpha',
+        'calibration_cv', 'min_category_samples',
+    )
+
     def create(self, request):
         serializer = CreateCategorisor(data=request.data)
 
@@ -59,7 +64,7 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         else:
             return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def calibrate(self, from_date, to_date, implementation, queryset=None):
+    def calibrate(self, from_date, to_date, implementation, queryset=None, options=None, return_categoriser=False):
         if queryset is None:
             queryset = Transaction.objects.filter(
                 when__gte=from_date,
@@ -69,23 +74,90 @@ class CategorisorViewSet(viewsets.ModelViewSet):
 
         cls = CategoriserFactory.get_by_name(implementation)
 
-        categorisor = cls()
+        categorisor = cls(**(options or {}))
         categorisor.fit_queryset(queryset)
+
+        if return_categoriser:
+            return categorisor
 
         return categorisor.to_bytes()
 
-    def _split_transaction_pks(self, from_date, to_date, split_ratio, random_seed=None):
-        """Split categorised transactions into calibration and validation sets.
+    def _extract_categoriser_options(self, data):
+        return {
+            key: data[key]
+            for key in self.CATEGORISER_OPTION_KEYS
+            if key in data and data[key] is not None
+        }
 
-        Returns (calibration_pks, validation_pks, seed) or None if too few transactions.
-        """
-        pks = list(
-            Transaction.objects.filter(
-                when__gte=from_date,
-                when__lte=to_date,
-                category__isnull=False
-            ).values_list('pk', flat=True)
-        )
+    def _build_training_config(self, data, options):
+        config = {
+            'implementation': data['implementation'],
+            'from_date': data['from_date'].isoformat(),
+            'to_date': data['to_date'].isoformat(),
+            **options,
+        }
+        for key in ('split_ratio', 'random_seed', 'recalibrate_full'):
+            if key in data:
+                value = data.get(key)
+                if value is not None:
+                    config[key] = value
+        return config
+
+    def _prepare_training_queryset(self, queryset, cls, options):
+        prepared = cls.prepare_queryset(queryset, **options)
+        return {
+            'queryset': prepared['queryset'],
+            'excluded_categories': prepared.get('excluded_categories', []),
+            'included_category_count': prepared.get('included_category_count', 0),
+            'included_transaction_count': prepared.get('included_transaction_count', 0),
+        }
+
+    def _build_exclusion_summary(self, prepared):
+        return {
+            'excluded_categories': prepared['excluded_categories'],
+            'included_category_count': prepared['included_category_count'],
+            'included_transaction_count': prepared['included_transaction_count'],
+        }
+
+    def _build_modelled_suggestion(self, category_map, name, score):
+        category_id = category_map.get(name)
+        if category_id is None:
+            return None
+        return {
+            'name': name,
+            'id': category_id,
+            'score': int(round(score * 100.0, 0)),
+        }
+
+    def _build_comparison(self, candidate_metrics, baseline_metrics):
+        metric_keys = ('accuracy', 'overall_accuracy', 'auto_precision', 'coverage', 'review_count')
+        return {
+            'baseline': {
+                'implementation': 'SklearnCategoriser',
+                **{key: baseline_metrics[key] for key in metric_keys},
+            },
+            'delta': {
+                key: candidate_metrics[key] - baseline_metrics[key]
+                for key in ('accuracy', 'overall_accuracy', 'auto_precision', 'coverage')
+            },
+        }
+
+    def _summarise_training_metrics(self, evaluation):
+        return {
+            'accuracy': evaluation['accuracy'],
+            'overall_accuracy': evaluation['overall_accuracy'],
+            'count': evaluation['count'],
+            'matched': evaluation['matched'],
+            'auto_matched': evaluation['auto_matched'],
+            'auto_precision': evaluation['auto_precision'],
+            'coverage': evaluation['coverage'],
+            'review_count': evaluation['review_count'],
+            'category_metrics': evaluation['category_metrics'],
+        }
+
+    def _split_queryset_pks(self, queryset, split_ratio, random_seed=None):
+        """Split a queryset into calibration and validation sets by primary key."""
+        pks = list(queryset.values_list('pk', flat=True))
 
         if len(pks) < MIN_CROSS_VALIDATION_TRANSACTIONS:
             return None
@@ -102,11 +174,106 @@ class CategorisorViewSet(viewsets.ModelViewSet):
 
         return calibration_pks, validation_pks, random_seed
 
+    def _evaluate_validation_queryset(self, categorisor, validation_qs, category_map):
+        count = 0
+        matched = 0
+        auto_matched = 0
+        review_count = 0
+        failed = []
+        category_stats = defaultdict(lambda: {
+            'correct': 0,
+            'total': 0,
+            'auto_correct': 0,
+            'auto_total': 0,
+        })
+
+        for trans in validation_qs.select_related('category'):
+            if not trans.category:
+                continue
+
+            details = categorisor.predict_details(trans.description or '')
+            count += 1
+            actual_name = trans.category.name
+            stats = category_stats[actual_name]
+            stats['total'] += 1
+
+            top_prediction = details['top_prediction']
+            if top_prediction and category_map.get(top_prediction) == trans.category.id:
+                matched += 1
+                stats['correct'] += 1
+
+            if details['accepted'] and details['gated_prediction']:
+                stats['auto_total'] += 1
+                if category_map.get(details['gated_prediction']) == trans.category.id:
+                    auto_matched += 1
+                    stats['auto_correct'] += 1
+                else:
+                    failed.append({
+                        'transaction': trans,
+                        'modelled': self._build_modelled_suggestion(
+                            category_map,
+                            details['gated_prediction'],
+                            details['top_probability'],
+                        ),
+                    })
+            else:
+                review_count += 1
+
+        category_metrics = [
+            {
+                'category_name': name,
+                'correct': stats['correct'],
+                'total': stats['total'],
+                'precision': stats['correct'] / stats['total'] if stats['total'] > 0 else 0.0,
+                'auto_correct': stats['auto_correct'],
+                'auto_total': stats['auto_total'],
+                'auto_precision': (
+                    stats['auto_correct'] / stats['auto_total']
+                    if stats['auto_total'] > 0 else 0.0
+                ),
+                'coverage': stats['auto_total'] / stats['total'] if stats['total'] > 0 else 0.0,
+            }
+            for name, stats in sorted(category_stats.items())
+        ]
+
+        accuracy = matched / count if count > 0 else 0.0
+        coverage = (count - review_count) / count if count > 0 else 0.0
+        auto_precision = auto_matched / (count - review_count) if count > review_count else 0.0
+
+        return {
+            'accuracy': accuracy,
+            'overall_accuracy': accuracy,
+            'count': count,
+            'matched': matched,
+            'auto_matched': auto_matched,
+            'auto_precision': auto_precision,
+            'coverage': coverage,
+            'review_count': review_count,
+            'category_metrics': category_metrics,
+            'failed': failed,
+        }
+
     @decorators.action(detail=True, methods=["get", "post"])
     def recalibrate(self, request, pk=None):
         details = self.get_object()
-        bin_data = self.calibrate(details.from_date, details.to_date, details.implementation)
+        options = {
+            key: details.training_config.get(key)
+            for key in self.CATEGORISER_OPTION_KEYS
+            if details.training_config.get(key) is not None
+        }
+        cls = CategoriserFactory.get_by_name(details.implementation)
+        queryset = Transaction.objects.filter(
+            when__gte=details.from_date,
+            when__lte=details.to_date,
+            category__isnull=False,
+        )
+        prepared = self._prepare_training_queryset(queryset, cls, options)
+        categorisor = cls(**options)
+        categorisor.set_training_metadata(**self._build_exclusion_summary(prepared))
+        categorisor.fit_queryset(prepared['queryset'])
+        bin_data = categorisor.to_bytes()
         details.model = bin_data
+        details.exclusion_summary = self._build_exclusion_summary(prepared)
         details.save()
 
         return response.Response("ok")
@@ -156,6 +323,7 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         serializer = CrossValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        options = self._extract_categoriser_options(data)
 
         try:
             cls = CategoriserFactory.get_by_name(data['implementation'])
@@ -168,20 +336,25 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         from_date = datetime.combine(data['from_date'], time(), timezone.get_current_timezone())
         to_date = datetime.combine(data['to_date'], time.max, timezone.get_current_timezone())
 
-        split_result = self._split_transaction_pks(
-            from_date, to_date, data['split_ratio'],
+        base_queryset = Transaction.objects.filter(
+            when__gte=from_date,
+            when__lte=to_date,
+            category__isnull=False,
+        )
+        prepared = self._prepare_training_queryset(base_queryset, cls, options)
+        split_result = self._split_queryset_pks(
+            prepared['queryset'],
+            data['split_ratio'],
             data.get('random_seed')
         )
 
         if split_result is None:
-            total = Transaction.objects.filter(
-                when__gte=from_date, when__lte=to_date, category__isnull=False
-            ).count()
+            total = prepared['included_transaction_count']
             error_data = {
                 "status": "error",
                 "message": (
                     f"Insufficient transactions for cross-validation. "
-                    f"Found {total} categorised transactions in the period, "
+                    f"Found {total} categorised transactions in the period after exclusions, "
                     f"minimum {MIN_CROSS_VALIDATION_TRANSACTIONS} required."
                 ),
             }
@@ -191,51 +364,15 @@ class CategorisorViewSet(viewsets.ModelViewSet):
 
         calibration_pks, validation_pks, seed = split_result
 
-        # Train on calibration set
-        categorisor = cls()
-        calibration_qs = Transaction.objects.filter(pk__in=calibration_pks)
+        categorisor = cls(**options)
+        categorisor.set_training_metadata(**self._build_exclusion_summary(prepared))
+        calibration_qs = prepared['queryset'].filter(pk__in=calibration_pks)
         categorisor.fit_queryset(calibration_qs)
 
-        # Pre-fetch category name -> id mapping to avoid N+1 queries
         category_map = {c.name: c.id for c in Category.objects.all()}
 
-        # Evaluate on validation set
-        validation_qs = Transaction.objects.filter(pk__in=validation_pks).select_related('category')
-        count = 0
-        matched = 0
-        failed = []
-        category_stats = defaultdict(lambda: {"correct": 0, "total": 0})
-
-        for trans in validation_qs:
-            if trans.category:
-                predictions = categorisor.predict(trans.description)
-                suggested = [
-                    {'name': name, 'id': category_map.get(name), 'score': int(round(score * 100.0, 0))}
-                    for name, score in predictions.items()
-                    if name in category_map
-                ]
-                count += 1
-                cat_name = trans.category.name
-                category_stats[cat_name]["total"] += 1
-
-                if suggested and suggested[0]['id'] == trans.category.id:
-                    matched += 1
-                    category_stats[cat_name]["correct"] += 1
-                else:
-                    failed.append({
-                        "transaction": trans,
-                        "modelled": suggested[0] if suggested else None
-                    })
-
-        category_metrics = [
-            {
-                "category_name": name,
-                "correct": stats["correct"],
-                "total": stats["total"],
-                "precision": stats["correct"] / stats["total"] if stats["total"] > 0 else 0.0,
-            }
-            for name, stats in sorted(category_stats.items())
-        ]
+        validation_qs = prepared['queryset'].filter(pk__in=validation_pks)
+        evaluation = self._evaluate_validation_queryset(categorisor, validation_qs, category_map)
 
         result = {
             "status": "ok",
@@ -246,12 +383,16 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             "split_ratio": data['split_ratio'],
             "calibration_size": len(calibration_pks),
             "validation_size": len(validation_pks),
-            "accuracy": matched / count if count > 0 else 0.0,
-            "count": count,
-            "matched": matched,
-            "category_metrics": category_metrics,
-            "failed": failed,
+            **evaluation,
+            **self._build_exclusion_summary(prepared),
         }
+
+        if data.get('compare_against_baseline') and data['implementation'] != 'SklearnCategoriser':
+            baseline_cls = CategoriserFactory.get_by_name('SklearnCategoriser')
+            baseline = baseline_cls()
+            baseline.fit_queryset(calibration_qs)
+            baseline_evaluation = self._evaluate_validation_queryset(baseline, validation_qs, category_map)
+            result['comparison'] = self._build_comparison(result, baseline_evaluation)
 
         result_serializer = CrossValidationResponseSerializer(
             result, context={'request': request}
@@ -263,9 +404,10 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         serializer = CrossValidateSaveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        options = self._extract_categoriser_options(data)
 
         try:
-            CategoriserFactory.get_by_name(data['implementation'])
+            cls = CategoriserFactory.get_by_name(data['implementation'])
         except Exception:
             return response.Response(
                 {'error': f"Unknown implementation: {data['implementation']}"},
@@ -275,15 +417,32 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         from_date = datetime.combine(data['from_date'], time(), timezone.get_current_timezone())
         to_date = datetime.combine(data['to_date'], time.max, timezone.get_current_timezone())
 
+        base_queryset = Transaction.objects.filter(
+            when__gte=from_date,
+            when__lte=to_date,
+            category__isnull=False,
+        )
+        prepared = self._prepare_training_queryset(base_queryset, cls, options)
+        exclusion_summary = self._build_exclusion_summary(prepared)
+        training_config = self._build_training_config(data, options)
+
+        if prepared['included_transaction_count'] == 0:
+            return response.Response(
+                {'error': 'No categorised transactions found in the specified period after exclusions.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        training_metrics = {
+            'trained_on_full_dataset': data['recalibrate_full'],
+            'included_transaction_count': prepared['included_transaction_count'],
+            'included_category_count': prepared['included_category_count'],
+        }
+
         if data['recalibrate_full']:
-            if not Transaction.objects.filter(
-                when__gte=from_date, when__lte=to_date, category__isnull=False
-            ).exists():
-                return response.Response(
-                    {'error': 'No categorised transactions found in the specified period.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            bin_data = self.calibrate(from_date, to_date, data['implementation'])
+            categorisor = cls(**options)
+            categorisor.set_training_metadata(**exclusion_summary)
+            categorisor.fit_queryset(prepared['queryset'])
+            bin_data = categorisor.to_bytes()
         else:
             missing = [f for f in ('split_ratio', 'random_seed') if f not in data]
             if missing:
@@ -291,26 +450,43 @@ class CategorisorViewSet(viewsets.ModelViewSet):
                     {'error': f"{', '.join(missing)} required when recalibrate_full is false."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            split_result = self._split_transaction_pks(
-                from_date, to_date, data['split_ratio'], data['random_seed']
+            split_result = self._split_queryset_pks(
+                prepared['queryset'], data['split_ratio'], data['random_seed']
             )
             if split_result is None:
                 return response.Response(
-                    {'error': 'Insufficient transactions in the period.'},
+                    {'error': 'Insufficient transactions in the period after exclusions.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            calibration_pks = split_result[0]
-            calibration_qs = Transaction.objects.filter(pk__in=calibration_pks)
-            bin_data = self.calibrate(
-                from_date, to_date, data['implementation'], queryset=calibration_qs
+            calibration_pks, validation_pks, seed = split_result
+            training_config['random_seed'] = seed
+            calibration_qs = prepared['queryset'].filter(pk__in=calibration_pks)
+            categorisor = cls(**options)
+            categorisor.set_training_metadata(**exclusion_summary)
+            categorisor.fit_queryset(calibration_qs)
+            bin_data = categorisor.to_bytes()
+
+            category_map = {c.name: c.id for c in Category.objects.all()}
+            evaluation = self._evaluate_validation_queryset(
+                categorisor,
+                prepared['queryset'].filter(pk__in=validation_pks),
+                category_map,
             )
+            training_metrics.update({
+                'split_ratio': data['split_ratio'],
+                'random_seed': seed,
+                **self._summarise_training_metrics(evaluation),
+            })
 
         record = CategorisorModel.objects.create(
             name=data['name'],
             implementation=data['implementation'],
             from_date=data['from_date'],
             to_date=data['to_date'],
-            model=bin_data
+            model=bin_data,
+            training_config=training_config,
+            training_metrics=training_metrics,
+            exclusion_summary=exclusion_summary,
         )
 
         if data.get('set_as_default'):
@@ -346,7 +522,11 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         for trans in transactions:
             if not trans.description:
                 continue
-            predictions = clf.predict(trans.description)
+            details = clf.predict_details(trans.description)
+            if not details['accepted']:
+                continue
+
+            predictions = details['suggestions']
             suggested = [
                 {'name': name, 'id': category_map[name].id,
                  'score': int(round(score * 100.0, 0))}

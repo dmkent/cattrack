@@ -7,7 +7,10 @@ from ctrack.models import Category, CategorisorModel, Transaction
 class CategorisorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = CategorisorModel
-        fields = ('url', 'id', 'name', 'implementation', 'from_date', 'to_date')
+        fields = (
+            'url', 'id', 'name', 'implementation', 'from_date', 'to_date',
+            'training_config', 'training_metrics', 'exclusion_summary',
+        )
 
 class DateRangeSerializer(serializers.Serializer):
     from_date = serializers.DateField()
@@ -41,12 +44,29 @@ class CrossValidateSerializer(serializers.Serializer):
     to_date = serializers.DateField()
     split_ratio = serializers.FloatField(default=0.5, min_value=0.1, max_value=0.9)
     random_seed = serializers.IntegerField(required=False)
+    threshold = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
+    margin = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
+    min_df = serializers.FloatField(required=False, min_value=0.0)
+    max_df = serializers.FloatField(required=False, min_value=0.0)
+    alpha = serializers.FloatField(required=False, min_value=0.0)
+    calibration_cv = serializers.IntegerField(required=False, min_value=2)
+    min_category_samples = serializers.IntegerField(required=False, min_value=1)
+    compare_against_baseline = serializers.BooleanField(default=False)
 
 class CategoryMetricSerializer(serializers.Serializer):
     category_name = serializers.CharField()
     correct = serializers.IntegerField()
     total = serializers.IntegerField()
     precision = serializers.FloatField()
+    auto_correct = serializers.IntegerField(required=False)
+    auto_total = serializers.IntegerField(required=False)
+    auto_precision = serializers.FloatField(required=False)
+    coverage = serializers.FloatField(required=False)
+
+
+class ExcludedCategorySerializer(serializers.Serializer):
+    category_name = serializers.CharField()
+    count = serializers.IntegerField()
 
 class CrossValidationErrorSerializer(serializers.Serializer):
     status = serializers.CharField()
@@ -64,6 +84,15 @@ class CrossValidationResponseSerializer(serializers.Serializer):
     accuracy = serializers.FloatField()
     count = serializers.IntegerField()
     matched = serializers.IntegerField()
+    overall_accuracy = serializers.FloatField(required=False)
+    auto_matched = serializers.IntegerField(required=False)
+    auto_precision = serializers.FloatField(required=False)
+    coverage = serializers.FloatField(required=False)
+    review_count = serializers.IntegerField(required=False)
+    excluded_categories = ExcludedCategorySerializer(many=True, required=False)
+    included_category_count = serializers.IntegerField(required=False)
+    included_transaction_count = serializers.IntegerField(required=False)
+    comparison = serializers.JSONField(required=False)
     category_metrics = CategoryMetricSerializer(many=True)
     failed = FailedMatchSerializer(many=True)
 
@@ -76,6 +105,13 @@ class CrossValidateSaveSerializer(serializers.Serializer):
     split_ratio = serializers.FloatField(required=False, min_value=0.1, max_value=0.9)
     random_seed = serializers.IntegerField(required=False)
     set_as_default = serializers.BooleanField(default=False)
+    threshold = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
+    margin = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
+    min_df = serializers.FloatField(required=False, min_value=0.0)
+    max_df = serializers.FloatField(required=False, min_value=0.0)
+    alpha = serializers.FloatField(required=False, min_value=0.0)
+    calibration_cv = serializers.IntegerField(required=False, min_value=2)
+    min_category_samples = serializers.IntegerField(required=False, min_value=1)
 
 
 class CurrentCategorySerializer(serializers.Serializer):
