@@ -268,9 +268,20 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             category__isnull=False,
         )
         prepared = self._prepare_training_queryset(queryset, cls, options)
+        if prepared['included_transaction_count'] == 0:
+            return response.Response(
+                {'error': 'No training data available after applying exclusions.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         categorisor = cls(**options)
         categorisor.set_training_metadata(**self._build_exclusion_summary(prepared))
-        categorisor.fit_queryset(prepared['queryset'])
+        try:
+            categorisor.fit_queryset(prepared['queryset'])
+        except ValueError as exc:
+            return response.Response(
+                {'error': str(exc) or 'Unable to recalibrate with the selected training data.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         bin_data = categorisor.to_bytes()
         details.model = bin_data
         details.exclusion_summary = self._build_exclusion_summary(prepared)
@@ -367,7 +378,13 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         categorisor = cls(**options)
         categorisor.set_training_metadata(**self._build_exclusion_summary(prepared))
         calibration_qs = prepared['queryset'].filter(pk__in=calibration_pks)
-        categorisor.fit_queryset(calibration_qs)
+        try:
+            categorisor.fit_queryset(calibration_qs)
+        except ValueError as exc:
+            return response.Response(
+                {'error': str(exc) or 'Unable to train with the selected options.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         category_map = {c.name: c.id for c in Category.objects.all()}
 
@@ -390,7 +407,13 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         if data.get('compare_against_baseline') and data['implementation'] != 'SklearnCategoriser':
             baseline_cls = CategoriserFactory.get_by_name('SklearnCategoriser')
             baseline = baseline_cls()
-            baseline.fit_queryset(calibration_qs)
+            try:
+                baseline.fit_queryset(calibration_qs)
+            except ValueError as exc:
+                return response.Response(
+                    {'error': str(exc) or 'Unable to train baseline with the selected data.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             baseline_evaluation = self._evaluate_validation_queryset(baseline, validation_qs, category_map)
             result['comparison'] = self._build_comparison(result, baseline_evaluation)
 
@@ -441,7 +464,13 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         if data['recalibrate_full']:
             categorisor = cls(**options)
             categorisor.set_training_metadata(**exclusion_summary)
-            categorisor.fit_queryset(prepared['queryset'])
+            try:
+                categorisor.fit_queryset(prepared['queryset'])
+            except ValueError as exc:
+                return response.Response(
+                    {'error': str(exc) or 'Unable to train with the selected options.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             bin_data = categorisor.to_bytes()
         else:
             missing = [f for f in ('split_ratio', 'random_seed') if f not in data]
@@ -463,7 +492,13 @@ class CategorisorViewSet(viewsets.ModelViewSet):
             calibration_qs = prepared['queryset'].filter(pk__in=calibration_pks)
             categorisor = cls(**options)
             categorisor.set_training_metadata(**exclusion_summary)
-            categorisor.fit_queryset(calibration_qs)
+            try:
+                categorisor.fit_queryset(calibration_qs)
+            except ValueError as exc:
+                return response.Response(
+                    {'error': str(exc) or 'Unable to train with the selected options.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             bin_data = categorisor.to_bytes()
 
             category_map = {c.name: c.id for c in Category.objects.all()}

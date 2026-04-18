@@ -283,7 +283,7 @@ class EnhancedSklearnCategoriser(Categoriser):
     def _normalise_document_frequency(self, value):
         if value is None:
             return value
-        if isinstance(value, float) and value.is_integer() and value >= 1:
+        if isinstance(value, float) and value.is_integer() and value > 1.0:
             return int(value)
         return value
 
