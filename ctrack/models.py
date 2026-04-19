@@ -472,6 +472,9 @@ class CategorisorModel(models.Model):
     from_date = models.DateField()
     to_date = models.DateField()
     model = models.BinaryField()
+    training_config = models.JSONField(default=dict, blank=True)
+    training_metrics = models.JSONField(default=dict, blank=True)
+    exclusion_summary = models.JSONField(default=dict, blank=True)
     _model_clf = None
 
     def clf_model(self):

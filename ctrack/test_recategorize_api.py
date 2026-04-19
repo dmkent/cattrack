@@ -27,7 +27,14 @@ def make_mock_classifier(prediction_map):
                 return pd.Series(scores)
         return pd.Series(dtype=float)
 
+    def predict_details(description):
+        suggestions = predict(description)
+        if len(suggestions) == 0:
+            return {"accepted": False, "suggestions": suggestions}
+        return {"accepted": True, "suggestions": suggestions}
+
     clf.predict = predict
+    clf.predict_details = predict_details
     return clf
 
 
