@@ -293,6 +293,8 @@ class EnhancedSklearnCategoriser(Categoriser):
 
         data = np.array(data, dtype=object)
         calibration_cv = int(self.config["calibration_cv"])
+        if calibration_cv < 2:
+            raise ValueError("calibration_cv must be at least 2.")
         category_counts = Counter(data[:, 1])
 
         # Exclude categories with fewer samples than calibration_cv
