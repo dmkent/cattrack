@@ -245,7 +245,12 @@ class EnhancedSklearnCategoriser(Categoriser):
     def prepare_queryset(cls, queryset, **config):
         cfg = cls.DEFAULT_CONFIG.copy()
         cfg.update({key: value for key, value in config.items() if value is not None})
-        min_category_samples = int(cfg['min_category_samples'])
+        # Calibrated training needs at least calibration_cv samples per category,
+        # so the effective minimum is the larger of the two thresholds. Aligning
+        # them here keeps the exclusion summary consistent with what is trained.
+        min_category_samples = max(
+            int(cfg['min_category_samples']), int(cfg['calibration_cv'])
+        )
 
         category_counts = list(
             queryset
@@ -292,36 +297,61 @@ class EnhancedSklearnCategoriser(Categoriser):
             raise ValueError('Cannot train categoriser without any data.')
 
         data = np.array(data, dtype=object)
+        calibration_cv = int(self.config["calibration_cv"])
+        if calibration_cv < 2:
+            raise ValueError("calibration_cv must be at least 2.")
         category_counts = Counter(data[:, 1])
+
+        # Exclude categories with fewer samples than calibration_cv
+        excluded = {
+            cat for cat, count in category_counts.items() if count < calibration_cv
+        }
+        if excluded:
+            mask = np.array([row[1] not in excluded for row in data])
+            data = data[mask]
+            if len(data) == 0:
+                raise ValueError(
+                    f"No categories have at least {calibration_cv} samples, "
+                    f"the minimum required for calibrated training "
+                    f"({len(excluded)} categories excluded)."
+                )
+            category_counts = Counter(data[:, 1])
+
         min_class_count = min(category_counts.values())
-        effective_cv = min(int(self.config['calibration_cv']), min_class_count)
-        if effective_cv < 2:
-            raise ValueError('Not enough samples per category for calibrated training.')
+        effective_cv = min(calibration_cv, min_class_count)
 
-        alpha = float(self.config['alpha'])
-        min_df = self._normalise_document_frequency(self.config['min_df'])
-        max_df = self._normalise_document_frequency(self.config['max_df'])
+        alpha = float(self.config["alpha"])
+        min_df = self._normalise_document_frequency(self.config["min_df"])
+        max_df = self._normalise_document_frequency(self.config["max_df"])
 
-        text_clf = Pipeline([
-            ('vect', CountVectorizer(
-                ngram_range=(1, 2),
-                min_df=min_df,
-                max_df=max_df,
-                strip_accents='unicode',
-                token_pattern=self.TOKEN_PATTERN,
-            )),
-            ('tfidf', TfidfTransformer()),
-            ('clf', CalibratedClassifierCV(
-                estimator=SGDClassifier(
-                    loss='log_loss',
-                    penalty='l2',
-                    alpha=alpha,
-                    random_state=42,
+        text_clf = Pipeline(
+            [
+                (
+                    "vect",
+                    CountVectorizer(
+                        ngram_range=(1, 2),
+                        min_df=min_df,
+                        max_df=max_df,
+                        strip_accents="unicode",
+                        token_pattern=self.TOKEN_PATTERN,
+                    ),
                 ),
-                cv=effective_cv,
-                method='sigmoid',
-            )),
-        ])
+                ("tfidf", TfidfTransformer()),
+                (
+                    "clf",
+                    CalibratedClassifierCV(
+                        estimator=SGDClassifier(
+                            loss="log_loss",
+                            penalty="l2",
+                            alpha=alpha,
+                            random_state=42,
+                        ),
+                        cv=effective_cv,
+                        method="sigmoid",
+                    ),
+                ),
+            ]
+        )
 
         self._clf = text_clf.fit(data[:, 0], data[:, 1])
 
