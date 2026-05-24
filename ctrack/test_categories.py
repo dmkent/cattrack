@@ -1,7 +1,10 @@
+from datetime import datetime
+
+import pytz
 from django.test import TestCase
 import pandas as pd
 
-from ctrack import categories
+from ctrack import categories, models
 
 
 class SklCategoriserTests(TestCase):
@@ -56,3 +59,56 @@ class EnhancedSklearnCategoriserTests(TestCase):
         self.assertFalse(details['accepted'])
         self.assertIsNone(details['gated_prediction'])
         self.assertEqual(list(details['suggestions'].index), ['Travel', 'Food'])
+
+
+class PrepareQuerysetExclusionTests(TestCase):
+    def setUp(self):
+        self.account = models.Account.objects.create(name="Test Account")
+        self.categories = {
+            name: models.Category.objects.create(name=name)
+            for name in ("Shopping", "Transport", "Food")
+        }
+        # Shopping: 6, Transport: 4, Food: 2 transactions.
+        rows = (
+            [("Shopping", "Shopping")] * 6
+            + [("Transport", "Transport")] * 4
+            + [("Food", "Food")] * 2
+        )
+        for i, (desc, cat_name) in enumerate(rows):
+            models.Transaction.objects.create(
+                when=datetime(2026, 1, 1 + i, 12, 0, tzinfo=pytz.utc),
+                account=self.account,
+                amount=10.00 + i,
+                category=self.categories[cat_name],
+                description=desc,
+            )
+
+    def test_excludes_categories_below_calibration_cv_when_higher(self):
+        """When calibration_cv > min_category_samples, the larger threshold wins
+        and the exclusion summary reflects exactly what is trained."""
+        prepared = categories.EnhancedSklearnCategoriser.prepare_queryset(
+            models.Transaction.objects.all(),
+            min_category_samples=2,
+            calibration_cv=5,
+        )
+
+        excluded = {item['category_name'] for item in prepared['excluded_categories']}
+        self.assertEqual(excluded, {"Transport", "Food"})
+        self.assertEqual(prepared['included_category_count'], 1)
+        self.assertEqual(prepared['included_transaction_count'], 6)
+
+        trained_categories = set(
+            prepared['queryset'].values_list('category__name', flat=True)
+        )
+        self.assertEqual(trained_categories, {"Shopping"})
+
+    def test_uses_min_category_samples_when_higher(self):
+        prepared = categories.EnhancedSklearnCategoriser.prepare_queryset(
+            models.Transaction.objects.all(),
+            min_category_samples=5,
+            calibration_cv=3,
+        )
+
+        excluded = {item['category_name'] for item in prepared['excluded_categories']}
+        self.assertEqual(excluded, {"Transport", "Food"})
+        self.assertEqual(prepared['included_category_count'], 1)

@@ -245,7 +245,12 @@ class EnhancedSklearnCategoriser(Categoriser):
     def prepare_queryset(cls, queryset, **config):
         cfg = cls.DEFAULT_CONFIG.copy()
         cfg.update({key: value for key, value in config.items() if value is not None})
-        min_category_samples = int(cfg['min_category_samples'])
+        # Calibrated training needs at least calibration_cv samples per category,
+        # so the effective minimum is the larger of the two thresholds. Aligning
+        # them here keeps the exclusion summary consistent with what is trained.
+        min_category_samples = max(
+            int(cfg['min_category_samples']), int(cfg['calibration_cv'])
+        )
 
         category_counts = list(
             queryset
@@ -306,7 +311,9 @@ class EnhancedSklearnCategoriser(Categoriser):
             data = data[mask]
             if len(data) == 0:
                 raise ValueError(
-                    "No categories have enough samples for calibrated training."
+                    f"No categories have at least {calibration_cv} samples, "
+                    f"the minimum required for calibrated training "
+                    f"({len(excluded)} categories excluded)."
                 )
             category_counts = Counter(data[:, 1])
 
