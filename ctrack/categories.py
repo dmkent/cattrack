@@ -292,36 +292,57 @@ class EnhancedSklearnCategoriser(Categoriser):
             raise ValueError('Cannot train categoriser without any data.')
 
         data = np.array(data, dtype=object)
+        calibration_cv = int(self.config["calibration_cv"])
         category_counts = Counter(data[:, 1])
+
+        # Exclude categories with fewer samples than calibration_cv
+        excluded = {
+            cat for cat, count in category_counts.items() if count < calibration_cv
+        }
+        if excluded:
+            mask = np.array([row[1] not in excluded for row in data])
+            data = data[mask]
+            if len(data) == 0:
+                raise ValueError(
+                    "No categories have enough samples for calibrated training."
+                )
+            category_counts = Counter(data[:, 1])
+
         min_class_count = min(category_counts.values())
-        effective_cv = min(int(self.config['calibration_cv']), min_class_count)
-        if effective_cv < 2:
-            raise ValueError('Not enough samples per category for calibrated training.')
+        effective_cv = min(calibration_cv, min_class_count)
 
-        alpha = float(self.config['alpha'])
-        min_df = self._normalise_document_frequency(self.config['min_df'])
-        max_df = self._normalise_document_frequency(self.config['max_df'])
+        alpha = float(self.config["alpha"])
+        min_df = self._normalise_document_frequency(self.config["min_df"])
+        max_df = self._normalise_document_frequency(self.config["max_df"])
 
-        text_clf = Pipeline([
-            ('vect', CountVectorizer(
-                ngram_range=(1, 2),
-                min_df=min_df,
-                max_df=max_df,
-                strip_accents='unicode',
-                token_pattern=self.TOKEN_PATTERN,
-            )),
-            ('tfidf', TfidfTransformer()),
-            ('clf', CalibratedClassifierCV(
-                estimator=SGDClassifier(
-                    loss='log_loss',
-                    penalty='l2',
-                    alpha=alpha,
-                    random_state=42,
+        text_clf = Pipeline(
+            [
+                (
+                    "vect",
+                    CountVectorizer(
+                        ngram_range=(1, 2),
+                        min_df=min_df,
+                        max_df=max_df,
+                        strip_accents="unicode",
+                        token_pattern=self.TOKEN_PATTERN,
+                    ),
                 ),
-                cv=effective_cv,
-                method='sigmoid',
-            )),
-        ])
+                ("tfidf", TfidfTransformer()),
+                (
+                    "clf",
+                    CalibratedClassifierCV(
+                        estimator=SGDClassifier(
+                            loss="log_loss",
+                            penalty="l2",
+                            alpha=alpha,
+                            random_state=42,
+                        ),
+                        cv=effective_cv,
+                        method="sigmoid",
+                    ),
+                ),
+            ]
+        )
 
         self._clf = text_clf.fit(data[:, 0], data[:, 1])
 
