@@ -14,10 +14,10 @@ from ctrack.transaction_import import TransactionFileFormat, TransactionImporter
 class Transaction(models.Model):
     """A single one-way transaction."""
     when = models.DateTimeField()
-    account = models.ForeignKey("Account", models.CASCADE)
+    account = models.ForeignKey("Account", on_delete=models.CASCADE, related_name="transactions")
     amount = models.DecimalField(decimal_places=2, max_digits=8)
     is_split = models.BooleanField(default=False)
-    category = models.ForeignKey("Category", models.CASCADE, null=True)
+    category = models.ForeignKey("Category", on_delete=models.CASCADE, null=True)
     description = models.CharField(max_length=500, null=True)
 
     def __str__(self):
@@ -57,11 +57,12 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ["-when"]
+        indexes = [models.Index(fields=["when"])]
 
 
 class SplitTransaction(Transaction):
     original_transaction = models.ForeignKey("Transaction",
-                                             models.CASCADE,
+                                             on_delete=models.CASCADE,
                                              related_name="split_transactions")
 
 
@@ -69,7 +70,7 @@ class BalancePoint(models.Model):
     """An account balance at a point in time."""
     ref_date = models.DateField()
     balance = models.DecimalField(decimal_places=2, max_digits=8)
-    account = models.ForeignKey("Account", models.CASCADE, related_name="balance_points")
+    account = models.ForeignKey("Account", on_delete=models.CASCADE, related_name="balance_points")
 
     class Meta:
         get_latest_by = "ref_date"
@@ -83,7 +84,7 @@ class BalancePoint(models.Model):
 
 class Account(models.Model):
     """A logical account."""
-    name = models.TextField(max_length=100)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
@@ -92,9 +93,9 @@ class Account(models.Model):
         """Load an OFX file into the DB."""
         if from_exist_latest:
             try:
-                latest_trans = self.transaction_set.latest('when')
+                latest_trans = self.transactions.latest('when')
                 from_date = latest_trans.when.date()
-            except:
+            except Transaction.DoesNotExist:
                 from_date = None
 
         loaded_transactions = TransactionImporter().load_from_file(
@@ -123,7 +124,7 @@ class Account(models.Model):
             init_balance = 0.0
             start = pytz.utc.localize(datetime(1990, 1, 1))
         transactions = (
-            self.transaction_set
+            self.transactions
             .filter(when__gt=start, is_split=False)
             .order_by('when')
         )
@@ -149,7 +150,7 @@ class Account(models.Model):
 
 class Category(models.Model):
     """A transaction category."""
-    name = models.TextField(max_length=100)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
@@ -289,7 +290,7 @@ class Bill(models.Model):
     paying_transactions = models.ManyToManyField("Transaction",
                                                  related_name="pays_bill")
     document = models.FileField(null=True, upload_to='uploaded/bills')
-    series = models.ForeignKey('RecurringPayment', models.CASCADE, related_name="bills")
+    series = models.ForeignKey('RecurringPayment', on_delete=models.CASCADE, related_name="bills")
 
     @property
     def is_paid(self) -> bool:
@@ -304,6 +305,7 @@ class Bill(models.Model):
 
     class Meta:
         ordering = ['-due_date',]
+        indexes = [models.Index(fields=["due_date"])]
 
 
 class RecurringPayment(models.Model):
@@ -411,7 +413,7 @@ def current_year_end():
 
 class BudgetEntry(models.Model):
     """Represents the budget for a category for a calendar month."""
-    name = models.CharField(max_length=20, default=None, null=True)
+    name = models.CharField(max_length=20, null=True)
     categories = models.ManyToManyField(Category)
     amount = models.DecimalField(decimal_places=2, max_digits=8)
     valid_from = models.DateField(default=current_year_start)
@@ -436,7 +438,7 @@ class BudgetEntry(models.Model):
         elif duration > 35:
             return self.valid_from.strftime("%b") + " - " + self.valid_to.strftime("%b %Y")
         elif duration > 27:
-            self.valid_to.strftime("%b %Y")
+            return self.valid_to.strftime("%b %Y")
         else:
             return self.valid_from.strftime("%d %b") + " - " + self.valid_to.strftime("%d %b %Y")
 
@@ -486,10 +488,18 @@ class CategorisorModel(models.Model):
     def __str__(self):
         return "{} ({})".format(self.name, self.implementation)
 
+    class Meta:
+        verbose_name = "categorisor model"
+        verbose_name_plural = "categorisor models"
+
 class UserSettings(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     selected_categorisor = models.ForeignKey(CategorisorModel, null=True, on_delete=models.SET_NULL)
     enable_db_categorisors = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "user settings"
+        verbose_name_plural = "user settings"
 
     def get_clf_model(self):
         if not self.enable_db_categorisors:
