@@ -23,7 +23,7 @@ class AccountSerializer(serializers.HyperlinkedModelSerializer):
 # ViewSets define the view behavior.
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.annotate(
-        last_transaction=Max('transaction__when')
+        last_transaction=Max('transactions__when')
     )
     serializer_class = AccountSerializer
 
