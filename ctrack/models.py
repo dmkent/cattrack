@@ -44,13 +44,24 @@ class Transaction(models.Model):
         self.save()
         [new_trans.save() for new_trans in new_transactions]
 
-    def suggest_category(self, clf):
+    def suggest_category(self, clf, category_map=None):
+        """Rank candidate categories for this transaction.
+
+        ``category_map`` is an optional ``{name: id}`` mapping. When evaluating
+        many transactions, build it once and pass it in to avoid a per-prediction
+        ``Category`` lookup (the previous N+1). When omitted it is built once per
+        call.
+        """
+        if category_map is None:
+            category_map = {c.name: c.id for c in Category.objects.all()}
         result = []
         for name, score in clf.predict(self.description).items():
-            cat = Category.objects.get(name=name)
+            category_id = category_map.get(name)
+            if category_id is None:
+                continue
             result.append({
-                'name': cat.name,
-                'id': cat.id,
+                'name': name,
+                'id': category_id,
                 'score': int(round(score * 100.0, 0)),
             })
         return result

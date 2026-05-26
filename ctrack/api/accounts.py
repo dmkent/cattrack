@@ -48,14 +48,13 @@ class AccountViewSet(viewsets.ModelViewSet):
                                          status=status.HTTP_400_BAD_REQUEST)
 
             clf = request.user.usersettings.get_clf_model()
+            category_map = {c.name: c.id for c in Category.objects.all()}
             for trans in transactions:
-                cats = trans.suggest_category(clf)
+                cats = trans.suggest_category(clf, category_map=category_map)
                 if len(cats) == 1:
-                    try:
-                        trans.category = Category.objects.get(pk=cats[0]['id'])
-                        trans.save()
-                    except Category.DoesNotExist:
-                        pass
+                    # id comes from category_map, so it is guaranteed valid.
+                    trans.category_id = cats[0]['id']
+                    trans.save(update_fields=['category'])
             return response.Response({'status': 'loaded'})
         else:
             return response.Response(serializer.errors,

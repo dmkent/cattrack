@@ -36,7 +36,11 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
 
 
 class RecurringPaymentViewSet(viewsets.ModelViewSet):
-    queryset = RecurringPayment.objects.all().order_by('name')
+    queryset = (
+        RecurringPayment.objects
+        .prefetch_related('bills', 'bills__paying_transactions')
+        .order_by('name')
+    )
     serializer_class = RecurringPaymentSerializer
 
     @decorators.action(detail=True, methods=["post"])
@@ -144,7 +148,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
 
 
 class BillViewSet(viewsets.ModelViewSet):
-    queryset = Bill.objects.all().order_by('-due_date')
+    queryset = Bill.objects.prefetch_related('paying_transactions').order_by('-due_date')
     serializer_class = BillSerializer
     filter_backends = (filters.backends.DjangoFilterBackend,)
     filter_fields = ('due_date', 'series')

@@ -311,9 +311,10 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         count = 0
         matched = 0
         failed = []
+        category_map = {c.name: c.id for c in Category.objects.all()}
         for trans in transactions:
             if trans.category:
-                suggested = trans.suggest_category(clf)
+                suggested = trans.suggest_category(clf, category_map=category_map)
                 count += 1
                 if suggested[0]['id'] == trans.category.id:
                     matched += 1
