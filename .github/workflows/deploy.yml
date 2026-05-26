@@ -55,8 +55,14 @@ jobs:
 
       - name: Deploy
         run: |
-          ssh -i ~/.ssh/deploy_key "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd ${DEPLOY_COMPOSE_PATH} && docker compose pull web && docker compose up web -d && docker compose exec web python manage.py migrate --settings cattrack.settings_prod && docker image prune -f"
+          ssh -i ~/.ssh/deploy_key "${DEPLOY_USER}@${DEPLOY_HOST}" "DEPLOY_COMPOSE_PATH='${DEPLOY_COMPOSE_PATH}' bash -s" <<'EOF'
+          set -e
+          cd "${DEPLOY_COMPOSE_PATH}"
+          docker compose pull web
+          docker compose up web -d
+          docker compose exec web python manage.py migrate --settings cattrack.settings_prod
+          docker image prune -f
+          EOF
 
       - name: Close firewall for runner
         if: always()
