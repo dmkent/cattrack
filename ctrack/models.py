@@ -310,7 +310,13 @@ class Bill(models.Model):
 
     @property
     def is_paid(self) -> bool:
-        return self.paying_transactions.aggregate(total=models.Sum('amount'))['total'] == -self.due_amount
+        # Sum over the related manager rather than .aggregate() so that a
+        # prefetched paying_transactions cache is reused (aggregate() always
+        # hits the DB, defeating prefetch_related on list endpoints).
+        payments = self.paying_transactions.all()
+        if not payments:
+            return False
+        return sum(txn.amount for txn in payments) == -self.due_amount
 
     def __str__(self):
         return "{} bill of ${:.2f} due on {}".format(

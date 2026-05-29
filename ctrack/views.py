@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import pytz
 
-from ctrack.models import CategorisorModel, Transaction
+from ctrack.models import Category, CategorisorModel, Transaction
 
 @login_required
 def validate_categorisor(request, cid, from_date_str, to_date_str):
@@ -16,9 +16,10 @@ def validate_categorisor(request, cid, from_date_str, to_date_str):
     to_date = pytz.utc.localize(datetime.strptime(to_date_str, '%Y-%m-%d'))
     transactions = Transaction.objects.filter(when__gte=from_date, when__lte=to_date)
 
+    category_map = dict(Category.objects.values_list('name', 'id'))
     validation = []
     for transaction in transactions:
-        suggested = transaction.suggest_category(clf)
+        suggested = transaction.suggest_category(clf, category_map=category_map)
         if suggested:
             validation.append({
                 'transaction': transaction,
