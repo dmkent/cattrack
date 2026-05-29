@@ -45,7 +45,12 @@ class Transaction(models.Model):
         [new_trans.save() for new_trans in new_transactions]
 
     def suggest_category(self, clf, category_map=None):
-        """Rank candidate categories for this transaction.
+        """Resolve the classifier's predictions to known categories.
+
+        Returns a list of ``{name, id, score}`` dicts in the order produced by
+        ``clf.predict`` (i.e. the classifier's own ranking; this method does not
+        re-sort). Labels with no matching ``Category`` are skipped, so the result
+        may be empty -- callers must not assume ``[0]`` exists.
 
         ``category_map`` is an optional ``{name: id}`` mapping. When evaluating
         many transactions, build it once and pass it in to avoid a per-prediction
@@ -53,7 +58,7 @@ class Transaction(models.Model):
         call.
         """
         if category_map is None:
-            category_map = {c.name: c.id for c in Category.objects.all()}
+            category_map = dict(Category.objects.values_list('name', 'id'))
         result = []
         for name, score in clf.predict(self.description).items():
             category_id = category_map.get(name)

@@ -48,11 +48,12 @@ class AccountViewSet(viewsets.ModelViewSet):
                                          status=status.HTTP_400_BAD_REQUEST)
 
             clf = request.user.usersettings.get_clf_model()
-            category_map = {c.name: c.id for c in Category.objects.all()}
+            category_map = dict(Category.objects.values_list('name', 'id'))
             for trans in transactions:
                 cats = trans.suggest_category(clf, category_map=category_map)
                 if len(cats) == 1:
-                    # id comes from category_map, so it is guaranteed valid.
+                    # id is sourced from category_map built moments ago, so
+                    # assign the FK directly and skip the extra Category fetch.
                     trans.category_id = cats[0]['id']
                     trans.save(update_fields=['category'])
             return response.Response({'status': 'loaded'})

@@ -16,10 +16,14 @@ def validate_categorisor(request, cid, from_date_str, to_date_str):
     to_date = pytz.utc.localize(datetime.strptime(to_date_str, '%Y-%m-%d'))
     transactions = Transaction.objects.filter(when__gte=from_date, when__lte=to_date)
 
-    validation = [{
-        'transaction': transaction,
-        'category': transaction.suggest_category(clf)[0],
-    } for transaction in transactions]
+    validation = []
+    for transaction in transactions:
+        suggested = transaction.suggest_category(clf)
+        if suggested:
+            validation.append({
+                'transaction': transaction,
+                'category': suggested[0],
+            })
 
     template = loader.get_template('ctrack/validation.html')
     context = {
