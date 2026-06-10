@@ -277,9 +277,10 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         categorisor.set_training_metadata(**self._build_exclusion_summary(prepared))
         try:
             categorisor.fit_queryset(prepared['queryset'])
-        except ValueError as exc:
+        except ValueError:
+            logger.exception("Recalibration failed due to invalid training data configuration.")
             return response.Response(
-                {'error': str(exc) or 'Unable to recalibrate with the selected training data.'},
+                {'error': 'Unable to recalibrate with the selected training data.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         bin_data = categorisor.to_bytes()
