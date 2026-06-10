@@ -8,8 +8,9 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from django.db.models import Sum
 from django.utils.dateparse import parse_date
-from rest_framework import response, serializers, views
+from rest_framework import response, views
 
+from ctrack.api.serializers.progress import ProgressResponseSerializer
 from ctrack.models import (
     BudgetEntry,
     Category,
@@ -20,43 +21,6 @@ from ctrack.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Serializers
-# ---------------------------------------------------------------------------
-
-class ProgressPeriodSerializer(serializers.Serializer):
-    from_date = serializers.DateField()
-    to_date = serializers.DateField()
-    label = serializers.CharField()
-
-
-class UpcomingBillSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    expected_date = serializers.DateField()
-    expected_amount = serializers.DecimalField(max_digits=8, decimal_places=2)
-
-
-class ProgressRowSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-    actual_spend = serializers.DecimalField(max_digits=20, decimal_places=2)
-    expected_remaining = serializers.DecimalField(max_digits=20, decimal_places=2)
-    budget = serializers.DecimalField(max_digits=20, decimal_places=2, allow_null=True)
-    upcoming_bills = UpcomingBillSerializer(many=True)
-
-
-class ProgressTotalsSerializer(serializers.Serializer):
-    actual_spend = serializers.DecimalField(max_digits=20, decimal_places=2)
-    expected_remaining = serializers.DecimalField(max_digits=20, decimal_places=2)
-    budget = serializers.DecimalField(max_digits=20, decimal_places=2, allow_null=True)
-
-
-class ProgressResponseSerializer(serializers.Serializer):
-    period = ProgressPeriodSerializer()
-    rows = ProgressRowSerializer(many=True)
-    totals = ProgressTotalsSerializer()
 
 
 # ---------------------------------------------------------------------------

@@ -5,50 +5,22 @@ import logging
 from django.db.models import Sum
 from django.http import HttpResponseBadRequest
 from rest_framework import (decorators, pagination, response,
-                            serializers, status, viewsets)
+                            status, viewsets)
 from django_filters import rest_framework as filters
 import django_filters
-from ctrack.models import (Category, Transaction)
+from ctrack.models import Transaction
+from ctrack.api.serializers.transactions import (
+    SplitTransSerializer, SummarySerializer, TransactionSerializer,
+)
 
 
 logger = logging.getLogger(__name__)
-
-
-class TransactionSerializer(serializers.ModelSerializer):
-    category_name = serializers.ReadOnlyField(source='category.name')
-
-    class Meta:
-        model = Transaction
-        fields = ('url', 'id', 'when', 'amount', 'description', 'category', 'category_name', 'account')
-
-
-class SplitTransSerializer(serializers.Serializer):
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 # ViewSets define the view behavior.
 class PageNumberSettablePagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
     page_size = 100
-
-
-class SummarySerializer(serializers.Serializer):
-    category = serializers.IntegerField(allow_null=True)
-    category_name = serializers.CharField(max_length=100, source='category__name', allow_null=True)
-    subcategory = serializers.SerializerMethodField()
-    total = serializers.DecimalField(max_digits=20, decimal_places=2)
-
-    def get_subcategory(self, obj):
-        return Category.subcategory_prefix_from_name(obj.get('category__name'))
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if data.get('category_name') is None:
-            data['category_name'] = "None"
-        if data.get('subcategory') is None:
-            data['subcategory'] = "None"
-        return data
 
 
 class DateRangeTransactionFilter(filters.FilterSet):

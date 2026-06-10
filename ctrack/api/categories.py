@@ -7,32 +7,15 @@ from dateutil.parser import parse as parse_date
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.http import Http404
-from rest_framework import (decorators, generics, response,
-                            serializers, viewsets)
-from ctrack.api.series_serializer import SeriesSerializer
+from rest_framework import (decorators, generics, response, viewsets)
+from ctrack.api.serializers.common import SeriesSerializer
+from ctrack.api.serializers.categories import (
+    CategorySerializer, CategorySummarySerializer, ScoredCategorySerializer,
+)
 from ctrack.models import (Category, Transaction, BudgetEntry)
 
 
 logger = logging.getLogger(__name__)
-
-
-class CategorySerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Category
-        fields = ('url', 'id', 'name')
-
-
-class ScoredCategorySerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField(max_length=50)
-    score = serializers.IntegerField()
-
-
-class CategorySummarySerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField(max_length=50)
-    value = serializers.FloatField()
-    budget = serializers.FloatField()
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

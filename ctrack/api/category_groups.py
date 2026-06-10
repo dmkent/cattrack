@@ -2,18 +2,12 @@
 
 from django.db.models import Q
 from django.utils.dateparse import parse_date
-from rest_framework import decorators, response, serializers, viewsets
+from rest_framework import decorators, response, viewsets
 import pandas as pd
 
 from ctrack.models import CategoryGroup, Transaction
-from ctrack.api.series_serializer import SeriesSerializer
-
-
-class CategoryGroupSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = CategoryGroup
-        fields = ("url", "id", "name", "categories")
-        extra_kwargs = {"categories": {"required": False}}
+from ctrack.api.serializers.common import SeriesSerializer
+from ctrack.api.serializers.category_groups import CategoryGroupSerializer
 
 
 class CategoryGroupViewSet(viewsets.ModelViewSet):
