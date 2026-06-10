@@ -85,8 +85,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 return HttpResponseBadRequest("Invalid arguments.")
         try:
             transaction.split(args)
-        except Exception as thrown:
-            return response.Response("Unable to set categories: {}".format(thrown),
+        except Exception:
+            logger.exception("Unable to set categories for transaction split.")
+            return response.Response("Unable to set categories.",
                                      status=status.HTTP_400_BAD_REQUEST)
         return response.Response({"message": "Success"})
 
