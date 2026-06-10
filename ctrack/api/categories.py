@@ -65,10 +65,9 @@ class SuggestCategories(generics.ListAPIView):
             transaction = Transaction.objects.get(pk=self.kwargs['pk'])
         except Transaction.DoesNotExist:
             raise Http404
-        try:
-            return transaction.suggest_category(clf)
-        except Category.DoesNotExist:
-            raise Http404
+        # suggest_category skips unknown labels and returns [] rather than
+        # raising, which the list serializer renders as an empty result.
+        return transaction.suggest_category(clf)
 
 
 class CategorySummary(generics.ListAPIView):

@@ -44,13 +44,29 @@ class Transaction(models.Model):
         self.save()
         [new_trans.save() for new_trans in new_transactions]
 
-    def suggest_category(self, clf):
+    def suggest_category(self, clf, category_map=None):
+        """Resolve the classifier's predictions to known categories.
+
+        Returns a list of ``{name, id, score}`` dicts in the order produced by
+        ``clf.predict`` (i.e. the classifier's own ranking; this method does not
+        re-sort). Labels with no matching ``Category`` are skipped, so the result
+        may be empty -- callers must not assume ``[0]`` exists.
+
+        ``category_map`` is an optional ``{name: id}`` mapping. When evaluating
+        many transactions, build it once and pass it in to avoid a per-prediction
+        ``Category`` lookup (the previous N+1). When omitted it is built once per
+        call.
+        """
+        if category_map is None:
+            category_map = dict(Category.objects.values_list('name', 'id'))
         result = []
         for name, score in clf.predict(self.description).items():
-            cat = Category.objects.get(name=name)
+            category_id = category_map.get(name)
+            if category_id is None:
+                continue
             result.append({
-                'name': cat.name,
-                'id': cat.id,
+                'name': name,
+                'id': category_id,
                 'score': int(round(score * 100.0, 0)),
             })
         return result
@@ -294,7 +310,13 @@ class Bill(models.Model):
 
     @property
     def is_paid(self) -> bool:
-        return self.paying_transactions.aggregate(total=models.Sum('amount'))['total'] == -self.due_amount
+        # Sum over the related manager rather than .aggregate() so that a
+        # prefetched paying_transactions cache is reused (aggregate() always
+        # hits the DB, defeating prefetch_related on list endpoints).
+        payments = self.paying_transactions.all()
+        if not payments:
+            return False
+        return sum(txn.amount for txn in payments) == -self.due_amount
 
     def __str__(self):
         return "{} bill of ${:.2f} due on {}".format(

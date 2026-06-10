@@ -311,16 +311,18 @@ class CategorisorViewSet(viewsets.ModelViewSet):
         count = 0
         matched = 0
         failed = []
+        category_map = dict(Category.objects.values_list('name', 'id'))
         for trans in transactions:
             if trans.category:
-                suggested = trans.suggest_category(clf)
+                suggested = trans.suggest_category(clf, category_map=category_map)
                 count += 1
-                if suggested[0]['id'] == trans.category.id:
+                top = suggested[0] if suggested else None
+                if top and top['id'] == trans.category.id:
                     matched += 1
                 else:
                     failed += [{
                         "transaction": trans,
-                        "modelled": suggested[0]
+                        "modelled": top
                     }]
 
         responseSerializer = ValidationResponseSerializer(
