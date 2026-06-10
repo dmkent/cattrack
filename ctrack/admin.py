@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.db.models import Count
+from django.db.models import Count, Q
+from django.db.models.functions import TruncDate
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
@@ -7,9 +8,37 @@ from django.contrib.auth.models import User
 from ctrack import models
 
 
+class DuplicateTransactionListFilter(admin.SimpleListFilter):
+    title = _("duplicates")
+    parameter_name = "duplicates"
+
+    # A "duplicate" is matched on date (not full timestamp), amount,
+    # description and account. Category is deliberately excluded.
+    def lookups(self, request, model_admin):
+        return (("yes", _("Only duplicates")),)
+
+    def queryset(self, request, queryset):
+        if self.value() != "yes":
+            return queryset
+        dup_keys = (
+            queryset.annotate(when_date=TruncDate("when"))
+            .values("account", "when_date", "amount", "description")
+            .annotate(n=Count("id"))
+            .filter(n__gt=1)
+            .values_list("account", "when_date", "amount", "description")
+        )
+        # Build an OR of exact-key matches for each duplicated group.
+        q = Q()
+        for account, when_date, amount, description in dup_keys:
+            q |= Q(account=account, when__date=when_date, amount=amount,
+                   description=description)
+        return queryset.filter(q) if dup_keys else queryset.none()
+
+
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ("when", "description", "amount", "is_split", "category", "account")
-    list_filter = ("category", "account")
+    list_filter = (DuplicateTransactionListFilter, "category", "account")
+    ordering = ("account", "when", "amount", "description")
 
 
 class CategoryGroupListFilter(admin.SimpleListFilter):
