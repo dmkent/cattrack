@@ -6,6 +6,7 @@ from rest_framework import (decorators, response, status, viewsets)
 from ctrack.api.serializers.common import LoadDataSerializer, SeriesSerializer
 from ctrack.api.serializers.accounts import AccountSerializer
 from ctrack.models import (Account, Category)
+from ctrack.services import import_service
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,8 @@ class AccountViewSet(viewsets.ModelViewSet):
             to_date = serializer.validated_data.get('to_date')
             from_latest = from_date is None and to_date is None
             try:
-                transactions = account.load_transactions(
+                transactions = import_service.load_transactions(
+                    account,
                     serializer.validated_data['data_file'],
                     from_date=from_date,
                     to_date=to_date,

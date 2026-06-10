@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date
 import importlib
 
 from dateutil.relativedelta import relativedelta
@@ -6,10 +6,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import numpy as np
 import pandas as pd
-import pytz
 
-from ctrack import categories
-from ctrack.transaction_import import TransactionFileFormat, TransactionImporter
 
 class Transaction(models.Model):
     """A single one-way transaction."""
@@ -45,31 +42,13 @@ class Transaction(models.Model):
         [new_trans.save() for new_trans in new_transactions]
 
     def suggest_category(self, clf, category_map=None):
-        """Resolve the classifier's predictions to known categories.
+        """Resolve ``clf``'s predictions to known categories.
 
-        Returns a list of ``{name, id, score}`` dicts in the order produced by
-        ``clf.predict`` (i.e. the classifier's own ranking; this method does not
-        re-sort). Labels with no matching ``Category`` are skipped, so the result
-        may be empty -- callers must not assume ``[0]`` exists.
-
-        ``category_map`` is an optional ``{name: id}`` mapping. When evaluating
-        many transactions, build it once and pass it in to avoid a per-prediction
-        ``Category`` lookup (the previous N+1). When omitted it is built once per
-        call.
+        Trivial accessor -- see
+        :func:`ctrack.services.categorisation_service.suggest_categories`.
         """
-        if category_map is None:
-            category_map = dict(Category.objects.values_list('name', 'id'))
-        result = []
-        for name, score in clf.predict(self.description).items():
-            category_id = category_map.get(name)
-            if category_id is None:
-                continue
-            result.append({
-                'name': name,
-                'id': category_id,
-                'score': int(round(score * 100.0, 0)),
-            })
-        return result
+        from ctrack.services import categorisation_service
+        return categorisation_service.suggest_categories(self, clf, category_map=category_map)
 
     class Meta:
         ordering = ["-when"]
@@ -105,63 +84,16 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-    def load_transactions(self, fname, from_date=None, to_date=None, from_exist_latest=True):
-        """Load an OFX file into the DB."""
-        if from_exist_latest:
-            try:
-                latest_trans = self.transactions.latest('when')
-                from_date = latest_trans.when.date()
-            except Transaction.DoesNotExist:
-                from_date = None
-
-        loaded_transactions = TransactionImporter().load_from_file(
-            fname,
-            from_date=from_date,
-            to_date=to_date
-        )
-
-        for trans in loaded_transactions:
-            trans = Transaction.objects.create(
-                when=trans.when,
-                account=self,
-                description=trans.description,
-                amount=trans.amount,
-            )
-            yield trans
-
-
     def daily_balance(self):
         """Get series of daily balance."""
-        try:
-            balance_point = self.balance_points.latest()
-            init_balance = float(balance_point.balance)
-            start = pytz.utc.localize(datetime.combine(balance_point.ref_date, time(0, 0)))
-        except BalancePoint.DoesNotExist:
-            init_balance = 0.0
-            start = pytz.utc.localize(datetime(1990, 1, 1))
-        transactions = (
-            self.transactions
-            .filter(when__gt=start, is_split=False)
-            .order_by('when')
-        )
-        if len(transactions) <= 0:
-            return pd.Series(dtype='float64')
-        series = pd.DataFrame({obj.id: {
-            'when': obj.when,
-            'amount': float(obj.amount)
-        } for obj in transactions}).T
-        series = series.groupby('when').sum()['amount']
-        series = series.cumsum() + init_balance
-        series = series.resample('D').ffill()
-        return series
+        from ctrack.services import reporting_service
+        return reporting_service.account_daily_balance(self)
 
     @property
     def balance(self) -> float | None:
         """Get the latest balance for the account."""
-        try:
-            return self.daily_balance().iloc[-1]
-        except IndexError:
-            return None
+        from ctrack.services import reporting_service
+        return reporting_service.account_balance(self)
 
 
 class Category(models.Model):
@@ -338,51 +270,19 @@ class RecurringPayment(models.Model):
 
     def bills_as_series(self):
         """Convert related Bill objects to time series."""
-        arr = np.array(self.bills.order_by('due_date').values_list('due_date', 'due_amount'))
-        if len(arr) == 0:
-            return pd.Series()
-        return pd.Series(arr[:, 1], index=pd.DatetimeIndex(arr[:, 0])).astype(float)
+        from ctrack.services import reporting_service
+        return reporting_service.bills_as_series(self)
 
     def next_due_date(self) -> date | None:
         """Calculate the due date of the next bill."""
-        data = self.bills_as_series()
-        if len(data) == 0:
-            return None
-        days_between = data.index.to_series().diff().dt.days.values[1:]
-        mean_days = np.mean(days_between)
-        if not np.isfinite(mean_days):
-            return None
-        last_due = data.index[-1]
-        return last_due + timedelta(days=mean_days)
+        from ctrack.services import reporting_service
+        return reporting_service.next_due_date(self)
 
     def __str__(self):
         if self.is_income:
             return "Income: {}".format(self.name)
         else:
             return "Bill: {}".format(self.name)
-
-    def add_bill_from_file(self, fobj):
-        """
-            Try and add a new bill to this series by examining PDF file.
-        """
-        from ctrack.pdf_item_reader import extract_data
-        data_from_file = extract_data(fobj, BillPdfScraperConfig.fetch_all_config())
-        try:
-            new_bill = Bill(
-                description='test',
-                due_amount=data_from_file['amount'],
-                due_date=data_from_file['due_date'],
-                series=self,
-            )
-        except KeyError as thrown:
-            raise RuntimeError("Unable to get %s from PDF file." % thrown)
-        # That went well. Add the file to the new object...
-        #new_path = Path(settings.MEDIA_ROOT) / 'uploaded' / 'bills'
-        #new_path /= Path(fpath).name
-        #new_path.parent.mkdir(parents=True, exist_ok=True)
-        #shutil.copy(fpath, str(new_path))
-        new_bill.document = fobj
-        new_bill.save()
 
 
 class BillPdfScraperConfig(models.Model):
@@ -503,8 +403,10 @@ class CategorisorModel(models.Model):
 
     def clf_model(self):
         if self._model_clf is None:
-            cls = categories.CategoriserFactory.get_by_name(self.implementation)
-            self._model_clf = cls.from_bytes(self.model)
+            from ctrack.services import categorisation_service
+            self._model_clf = categorisation_service.load_categoriser(
+                self.implementation, self.model
+            )
         return self._model_clf
 
     def __str__(self):
@@ -524,10 +426,8 @@ class UserSettings(models.Model):
         verbose_name_plural = "user settings"
 
     def get_clf_model(self):
-        if not self.enable_db_categorisors:
-            return categories.CategoriserFactory.get_legacy_from_disk()
-
-        return self.selected_categorisor.clf_model()
+        from ctrack.services import categorisation_service
+        return categorisation_service.get_clf_model(self)
 
     def __str__(self) -> str:
         return "Settings for {}".format(self.user.get_short_name())
