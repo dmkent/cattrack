@@ -2,20 +2,12 @@
 
 import logging
 
-from rest_framework import response, serializers, views
+from rest_framework import response, views
+from ctrack.api.serializers.period_definition import PeriodDefinitionSerializer
 from ctrack.models import PeriodDefinition
 
 
 logger = logging.getLogger(__name__)
-
-
-class PeriodDefinitionSerializer(serializers.Serializer):
-    label = serializers.CharField(max_length=40)
-    from_date = serializers.DateField()
-    to_date = serializers.DateField()
-
-    id = serializers.IntegerField()
-    offset = serializers.IntegerField()
 
 
 class PeriodDefinitionView(views.APIView):

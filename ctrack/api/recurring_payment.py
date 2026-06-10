@@ -2,7 +2,10 @@
 """
 import logging
 
-from ctrack.api.data_serializer import LoadDataSerializer
+from ctrack.api.serializers.common import LoadDataSerializer
+from ctrack.api.serializers.recurring_payment import (
+    BillSerializer, RecurringPaymentSerializer,
+)
 from ctrack.api.serializers.recurring_detection import (
     CreateFromDetectionSerializer,
     DetectRecurringRequestSerializer,
@@ -12,27 +15,9 @@ from django.db import transaction as db_transaction
 from ctrack.models import (Bill, RecurringPayment, Transaction)
 from ctrack.recurring_detection import RecurringTransactionDetector
 from django_filters import rest_framework as filters
-from rest_framework import (decorators, response,
-                            serializers, status, viewsets)
+from rest_framework import (decorators, response, status, viewsets)
 
 logger = logging.getLogger(__name__)
-
-
-class BillSerializer(serializers.ModelSerializer):
-    is_paid = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Bill
-        fields = ('url', 'id', 'description', 'due_date', 'due_amount', 'fixed_amount', 'var_amount',
-                  'document', 'series', 'paying_transactions', 'is_paid')
-
-
-class RecurringPaymentSerializer(serializers.ModelSerializer):
-    bills = BillSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = RecurringPayment
-        fields = ('url', 'id', 'name', 'is_income', 'bills', 'next_due_date', 'category')
 
 
 class RecurringPaymentViewSet(viewsets.ModelViewSet):

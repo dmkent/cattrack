@@ -2,22 +2,13 @@
 """
 import logging
 from django.db.models import Max
-from rest_framework import (decorators, response,
-                            serializers, status, viewsets)
-from ctrack.api.data_serializer import LoadDataSerializer
-from ctrack.api.series_serializer import SeriesSerializer
+from rest_framework import (decorators, response, status, viewsets)
+from ctrack.api.serializers.common import LoadDataSerializer, SeriesSerializer
+from ctrack.api.serializers.accounts import AccountSerializer
 from ctrack.models import (Account, Category)
 
 
 logger = logging.getLogger(__name__)
-
-
-# Serializers define the API representation.
-class AccountSerializer(serializers.HyperlinkedModelSerializer):
-    last_transaction = serializers.DateTimeField(read_only=True)
-    class Meta:
-        model = Account
-        fields = ('url', 'id', 'name', 'balance', 'last_transaction')
 
 
 # ViewSets define the view behavior.
