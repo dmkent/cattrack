@@ -28,7 +28,7 @@ PyYAML==6.0.2
 quiffen==3.0.0
 requests==2.33.0
 scikit-learn==1.6.1
-scipy==1.15.2
+scipy==1.17.1
 simplegeneric==0.8.1
 six==1.17.0
 traitlets==5.14.3
