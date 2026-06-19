@@ -6,3 +6,21 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    groups:
+      django:
+        patterns:
+          - "django*"
+          - "drf-*"
+          - "djangorestframework*"
+      ml:
+        patterns:
+          - "scikit-learn"
+          - "scipy"
+          - "numpy"
+          - "pandas"
+      data-parsing:
+        patterns:
+          - "ofxparse"
+          - "quiffen"
+          - "lxml"
+          - "beautifulsoup4"
