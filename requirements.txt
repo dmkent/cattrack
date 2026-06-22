@@ -15,7 +15,7 @@ numpy==1.26.4
 ofxparse==0.21
 pandas==2.2.3
 PasteDeploy==2.0.1
-pexpect==4.7.0
+pexpect==4.9.0
 pickleshare==0.7.5
 prompt-toolkit==3.0.52
 psycopg[binary]==3.2.5
