@@ -24,7 +24,7 @@ pygments==2.20.0
 PyJWT==2.13.0
 python-dateutil==2.9.0
 pytz==2025.1
-PyYAML==6.0.2
+PyYAML==6.0.3
 quiffen==3.0.0
 requests==2.33.0
 scikit-learn==1.6.1
