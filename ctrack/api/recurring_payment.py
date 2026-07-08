@@ -14,6 +14,7 @@ from ctrack.api.serializers.recurring_detection import (
 from django.db import transaction as db_transaction
 from ctrack.models import (Bill, RecurringPayment, Transaction)
 from ctrack.recurring_detection import RecurringTransactionDetector
+from ctrack.services import import_service
 from django_filters import rest_framework as filters
 from rest_framework import (decorators, response, status, viewsets)
 
@@ -34,7 +35,7 @@ class RecurringPaymentViewSet(viewsets.ModelViewSet):
         serializer = LoadDataSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                payments.add_bill_from_file(serializer.validated_data['data_file'])
+                import_service.add_bill_from_file(payments, serializer.validated_data['data_file'])
             except (ValueError, IOError, TypeError):
                 logger.exception("Unable to load PDF")
                 return response.Response("Unable to load file. Bad format?",
