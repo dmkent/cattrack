@@ -11,9 +11,9 @@ ipython==9.15.0
 ipython-genutils==0.2.0
 itypes==1.2.0
 lxml==6.1.1
-numpy==1.26.4
+numpy==2.5.1
 ofxparse==0.21
-pandas==2.2.3
+pandas==3.0.3
 PasteDeploy==3.1.0
 pexpect==4.9.0
 pickleshare==0.7.5
@@ -27,8 +27,8 @@ pytz==2026.2
 PyYAML==6.0.3
 quiffen==3.0.0
 requests==2.33.0
-scikit-learn==1.6.1
-scipy==1.15.2
+scikit-learn==1.9.0
+scipy==1.18.0
 simplegeneric==0.8.1
 six==1.17.0
 traitlets==5.15.1
