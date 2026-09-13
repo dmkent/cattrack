@@ -26,7 +26,7 @@ python-dateutil==2.9.0.post0
 pytz==2026.2
 PyYAML==6.0.3
 quiffen==3.0.0
-requests==2.33.0
+requests==2.34.2
 scikit-learn==1.9.0
 scipy==1.18.0
 simplegeneric==0.8.1
