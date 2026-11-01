@@ -21,9 +21,9 @@ prompt-toolkit==3.0.53
 psycopg[binary]==3.3.6
 ptyprocess==0.7.0
 pygments==2.21.0
-PyJWT==2.15.0
+PyJWT==2.15.1
 python-dateutil==2.9.0.post0
-pytz==2026.4
+pytz==2026.5
 PyYAML==6.0.3
 quiffen==3.0.0
 requests==2.34.2
@@ -33,4 +33,4 @@ simplegeneric==0.8.1
 six==1.17.0
 traitlets==5.16.1
 uritemplate==4.2.0
-wcwidth==0.9.1
+wcwidth==0.9.4
